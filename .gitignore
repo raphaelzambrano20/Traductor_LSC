@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.streamlit/
+data/*.csv
+models/*.pkl
+*.mp3
+*.wav
+*.log
+.python_user_base/
+.comtypes_cache/
+audio_cache/
