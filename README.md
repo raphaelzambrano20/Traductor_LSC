@@ -2,7 +2,7 @@
 
 Prototipo academico de traduccion bidireccional para Lengua de Senas Colombiana (LSC).
 Incluye captura de dataset con camara, entrenamiento de un clasificador y prediccion en
-tiempo real usando MediaPipe, OpenCV y Scikit-learn.
+tiempo real usando MediaPipe Holistic, OpenCV y Scikit-learn.
 
 El proyecto esta pensado solo para LSC. No se recomienda entrenarlo con ASL u otras
 lenguas de senas, porque cada lengua tiene vocabulario, gramatica y gestos propios.
@@ -27,8 +27,10 @@ http://localhost:8501
 venv\Scripts\python.exe src\capturar_dataset.py
 ```
 
-Digite el nombre de la sena, indique la cantidad de muestras y presione `S` para guardar
-cada muestra. Presione `Q` para salir.
+Digite el nombre de la sena, indique la cantidad de muestras, prepare la mano y presione
+`R` justo antes de hacer el movimiento. Mantenga visibles rostro y hombros: cada muestra
+guarda manos, referencias de cara/cuerpo y una secuencia corta para que el modelo aprenda
+ubicacion, postura, desplazamiento y velocidad. Presione `Q` para salir.
 
 2. Entrenar el modelo:
 
@@ -69,7 +71,17 @@ venv\Scripts\python.exe src\preparar_audios.py
 Ese comando requiere internet solo para generar los MP3. Despues la prediccion puede
 reproducir esos audios desde `audio_cache/`.
 
-Presione `Q` para cerrar la ventana de camara.
+La voz se reproduce cuando pasan 2 segundos sin detectar movimiento de manos despues de
+una o varias senas. El sistema acumula un parrafo y evita repetir la misma palabra de
+forma seguida; por ejemplo, `hola gracias hola` se permite, pero `hola hola` no se agrega
+dos veces seguidas. Cuando la voz reproduce el texto, el parrafo se limpia en pantalla.
+Presione
+`V` para hablar el parrafo completo, `C` para limpiar el parrafo acumulado y `Q` para
+cerrar la ventana de camara.
+Si el modelo predice `sin_sena`, `reposo`, `ninguna`, `no_sena` o `transicion`, no agrega
+texto al parrafo.
+La vista de camara se muestra en modo espejo, de modo que la mano derecha aparece a la
+derecha en pantalla.
 
 ## Archivos generados
 
@@ -103,6 +115,14 @@ Senas Colombiana:
 ## Recomendaciones
 
 - Capture al menos 30 a 100 muestras por sena.
+- Capture tambien 30 a 100 muestras con la etiqueta `sin_sena` o `reposo`: manos quietas,
+  manos entrando/saliendo del cuadro y movimientos entre una sena y otra.
+- Para senas con movimiento, presione `R`, haga el gesto completo y espere a que se guarde
+  automaticamente.
 - Use buena iluminacion y un fondo sencillo.
+- Mantenga visibles la cara y los hombros, especialmente en senas cerca de boca, orejas,
+  rostro o pecho.
 - Mantenga la misma distancia a la camara durante captura y prediccion.
 - Comience con pocas senas LSC, por ejemplo: hola, gracias, si, no, ayuda.
+- Si ya tenia un modelo entrenado solo con manos, capture nuevas muestras y vuelva a
+  entrenar para aprovechar las referencias corporales.

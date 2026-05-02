@@ -1,3 +1,4 @@
+import csv
 import sys
 import tempfile
 from pathlib import Path
@@ -6,7 +7,7 @@ import pandas as pd
 import streamlit as st
 from gtts import gTTS
 
-from src.config import DATASET_PATH, ENTRADA_MODELO, LEGACY_DATASET_PATH, MODEL_PATH, PROJECT_ROOT
+from src.config import DATASET_PATH, LEGACY_DATASET_PATH, MODEL_PATH, PROJECT_ROOT
 from src.vocabulario_lsc import VOCABULARIO_INICIAL_LSC
 
 
@@ -37,8 +38,22 @@ def cargar_resumen_dataset():
     if not dataset.exists():
         return None, None
 
-    columnas = ["sena"] + [f"p{i}" for i in range(ENTRADA_MODELO)]
-    datos = pd.read_csv(dataset, header=None, names=columnas, usecols=range(ENTRADA_MODELO + 1))
+    filas = []
+    with dataset.open("r", encoding="utf-8", newline="") as archivo:
+        lector = csv.reader(archivo)
+        for fila in lector:
+            if fila and fila[0].strip():
+                filas.append(fila[:8])
+
+    if not filas:
+        return None, None
+
+    max_columnas = max(len(fila) for fila in filas)
+    for fila in filas:
+        fila.extend([""] * (max_columnas - len(fila)))
+
+    columnas = ["sena"] + [f"p{i}" for i in range(max_columnas - 1)]
+    datos = pd.DataFrame(filas, columns=columnas)
     resumen = (
         datos["sena"]
         .value_counts()
@@ -85,16 +100,32 @@ opcion = st.sidebar.radio(
 
 if opcion == "Inicio":
     st.subheader("Flujo recomendado")
-    st.write("1. Capture muestras por cada sena LSC con la camara.")
+    st.write("1. Capture muestras por cada sena LSC con la camara, incluyendo ubicacion y movimiento.")
     st.write("2. Entrene el modelo con el dataset capturado.")
     st.write("3. Ejecute la prediccion en tiempo real.")
+    st.info(
+        "La captura usa manos, rostro y pose corporal para diferenciar senas cerca de "
+        "la boca, orejas, cara o pecho."
+    )
+    st.info(
+        "Capture tambien muestras con la etiqueta sin_sena o reposo para que el modelo "
+        "aprenda cuando no debe agregar palabras."
+    )
     st.info(f"Carpeta del proyecto: {PROJECT_ROOT}")
     st.write("Vocabulario inicial sugerido:")
     st.write(", ".join(VOCABULARIO_INICIAL_LSC))
 
 elif opcion == "Capturar dataset":
     st.subheader("Capturar dataset")
-    st.write("Ejecute este comando en una terminal y use la tecla S para guardar cada muestra LSC.")
+    st.write(
+        "Ejecute este comando en una terminal, prepare la mano y use la tecla R justo "
+        "antes de hacer cada sena LSC. Mantenga visibles rostro y hombros para guardar "
+        "la altura relativa de la mano."
+    )
+    st.caption(
+        "Para reducir falsos positivos, capture una etiqueta llamada sin_sena con manos "
+        "en reposo y movimientos de transicion."
+    )
     st.code(comando("capturar_dataset"), language="powershell")
     st.caption(f"Dataset actual: {dataset}")
 
@@ -110,7 +141,13 @@ elif opcion == "Traducir sena a texto":
     st.subheader("Traducir sena a texto")
     if not MODEL_PATH.exists():
         st.warning("Primero debe entrenar el modelo.")
-    st.write("La prediccion usa OpenCV y MediaPipe en una ventana local de camara.")
+    st.write(
+        "La prediccion usa OpenCV y MediaPipe Holistic en una ventana local de camara. "
+        "La vista se muestra en modo espejo, acumula un parrafo sin repetir palabras "
+        "seguidas y limpia el parrafo cuando la voz lo reproduce tras 2 segundos sin "
+        "movimiento de manos."
+    )
+    st.caption("Si el modelo predice sin_sena, reposo o transicion, no se agrega texto al parrafo.")
     st.code(comando("predecir_sena"), language="powershell")
 
 elif opcion == "Ver dataset":
