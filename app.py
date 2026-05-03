@@ -8,6 +8,8 @@ import streamlit as st
 from gtts import gTTS
 
 from src.config import DATASET_PATH, LEGACY_DATASET_PATH, MODEL_PATH, PROJECT_ROOT
+from src.database.seed import seed_database
+from src.services.traductor_texto import traducir_texto
 from src.vocabulario_lsc import VOCABULARIO_INICIAL_LSC
 
 
@@ -91,6 +93,7 @@ opcion = st.sidebar.radio(
         "Capturar dataset",
         "Entrenar modelo",
         "Traducir sena a texto",
+        "Traducir texto a LSC",
         "Ver dataset",
         "Texto a voz",
         "Voz a texto",
@@ -149,6 +152,51 @@ elif opcion == "Traducir sena a texto":
     )
     st.caption("Si el modelo predice sin_sena, reposo o transicion, no se agrega texto al parrafo.")
     st.code(comando("predecir_sena"), language="powershell")
+
+elif opcion == "Traducir texto a LSC":
+    st.subheader("Traducir texto a LSC")
+    st.write(
+        "Escriba una oracion o parrafo. El sistema buscara primero frases completas, "
+        "luego palabras por categoria y finalmente deletreara lo que aun no este registrado."
+    )
+
+    if st.button("Inicializar o actualizar base de datos"):
+        seed_database()
+        st.success("Base de datos LSC lista.")
+
+    texto = st.text_area(
+        "Texto",
+        placeholder="Ejemplo: hola mama quiero agua azul por favor",
+    )
+
+    if st.button("Traducir texto"):
+        if not texto.strip():
+            st.error("Debe escribir un texto.")
+        else:
+            traduccion = traducir_texto(texto)
+            if not traduccion:
+                st.warning("No se encontraron palabras para traducir.")
+            else:
+                secuencia = []
+                filas = []
+                for item in traduccion:
+                    if item["estado"] == "deletrear":
+                        secuencia.append("-".join(item["letras"]))
+                    else:
+                        secuencia.append(item["texto"])
+                    filas.append(
+                        {
+                            "entrada": item["encontrado_por"],
+                            "traduccion": item["texto"],
+                            "categoria": item["categoria"],
+                            "tipo": item["tipo"],
+                            "estado": item["estado"],
+                        }
+                    )
+
+                st.write("Secuencia sugerida:")
+                st.code(" | ".join(secuencia), language="text")
+                st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
 
 elif opcion == "Ver dataset":
     st.subheader("Dataset capturado")
