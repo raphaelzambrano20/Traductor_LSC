@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .streamlit/
 data/*.csv
+data/external/
 models/*.pkl
 *.mp3
 *.wav
