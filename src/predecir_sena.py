@@ -67,8 +67,12 @@ def es_sin_sena(etiqueta):
     return str(etiqueta).strip().lower() in ETIQUETAS_SIN_SENA
 
 
+def normalizar_etiqueta(etiqueta):
+    return str(etiqueta).replace(" ", "_").strip().lower()
+
+
 def cumple_requisitos_sena(etiqueta, historial_landmarks, detector):
-    etiqueta = str(etiqueta).replace(" ", "_").strip().lower()
+    etiqueta = normalizar_etiqueta(etiqueta)
     requisitos = REQUISITOS_SENAS.get(etiqueta)
 
     if not requisitos:
@@ -136,6 +140,7 @@ def predecir():
     manos_anteriores = None
     parrafo = []
     puede_repetir_misma_sena = False
+    sena_sostenida_bloqueada = None
     indice_voz = 0
     minimo_frames_estables = 5
     segundos_sin_movimiento_para_hablar = 1.5
@@ -213,7 +218,9 @@ def predecir():
                     frames_estables = 0
                     ultima_prediccion = None
                     puede_repetir_misma_sena = True
+                    sena_sostenida_bloqueada = None
                 else:
+                    etiqueta_actual = normalizar_etiqueta(prediccion_actual)
                     requisitos_ok, mensaje_requisito = cumple_requisitos_sena(
                         prediccion_actual,
                         historial_landmarks,
@@ -230,7 +237,7 @@ def predecir():
                     if not requisitos_ok:
                         texto_prediccion = mensaje_requisito
                         frames_estables = 0
-                    if puede_hablar:
+                    if puede_hablar and etiqueta_actual != sena_sostenida_bloqueada:
                         ultima_palabra = parrafo[-1] if parrafo else None
                         palabra = palabra_para_parrafo(
                             prediccion_actual,
@@ -242,6 +249,7 @@ def predecir():
                             ultimo_tiempo_sena = ahora
                             frase_ya_hablada = False
                             puede_repetir_misma_sena = False
+                            sena_sostenida_bloqueada = etiqueta_actual
             except Exception:
                 texto_prediccion = "Sena no reconocida"
         else:
@@ -249,6 +257,7 @@ def predecir():
             frames_estables = 0
             manos_anteriores = None
             puede_repetir_misma_sena = True
+            sena_sostenida_bloqueada = None
             if manos_detectadas and not calidad_mano_ok:
                 texto_prediccion = "Acerque la mano / mejore la luz"
 
@@ -328,6 +337,7 @@ def predecir():
         if tecla == ord("c"):
             parrafo.clear()
             puede_repetir_misma_sena = False
+            sena_sostenida_bloqueada = None
             indice_voz = 0
             frase_ya_hablada = True
         if tecla == ord("v"):

@@ -5,6 +5,8 @@ __pycache__/
 data/*.csv
 data/external/
 models/*.pkl
+models/*.zip
+models/vosk-model-*/
 *.mp3
 *.wav
 *.log

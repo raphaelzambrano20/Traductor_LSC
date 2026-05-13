@@ -71,6 +71,14 @@ profundidad estimada (`z`) no haga que un dedo cerca de la cara se marque como p
 venv\Scripts\python.exe src\entrenar_modelo.py
 ```
 
+El entrenamiento compara varios modelos candidatos y guarda automaticamente el mejor:
+
+- `RandomForest`
+- `ExtraTrees`
+- `HistGradientBoosting`
+
+La salida muestra la precision de cada modelo y el nombre del modelo guardado.
+
 3. Ver el avance del dataset:
 
 ```powershell
@@ -94,6 +102,15 @@ venv\Scripts\python.exe src\borrar_sena.py hola
 ```powershell
 venv\Scripts\python.exe src\predecir_sena.py
 ```
+
+6. Validar precision real con camara:
+
+```powershell
+venv\Scripts\python.exe src\validar_camara.py
+```
+
+El validador pide la sena esperada, abre la camara durante unos segundos, cuenta las
+predicciones reales y guarda el resultado en `data/validacion_camara.csv`.
 
 Si la deteccion muestra la sena pero no se escucha la voz, prepare primero los audios:
 

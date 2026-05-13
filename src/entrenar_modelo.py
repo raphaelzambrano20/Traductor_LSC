@@ -1,12 +1,40 @@
 import csv
+import os
+
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", "1")
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 import joblib
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import ExtraTreesClassifier, HistGradientBoostingClassifier, RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 
 from config import DATASET_PATH, ENTRADA_MODELO, LEGACY_DATASET_PATH, MODEL_PATH, MODELS_DIR
+
+
+def crear_modelos():
+    return {
+        "RandomForest": RandomForestClassifier(
+            n_estimators=200,
+            random_state=42,
+            n_jobs=1,
+            class_weight="balanced_subsample",
+        ),
+        "ExtraTrees": ExtraTreesClassifier(
+            n_estimators=300,
+            random_state=42,
+            n_jobs=1,
+            class_weight="balanced",
+        ),
+        "HistGradientBoosting": HistGradientBoostingClassifier(
+            max_iter=200,
+            learning_rate=0.08,
+            random_state=42,
+        ),
+    }
 
 
 def cargar_dataset_variable(archivo_csv):
@@ -64,19 +92,53 @@ def entrenar_modelo():
         X_train, X_test, y_train, y_test = X, X, y, y
         print("Aviso: capture al menos 2 muestras por sena para evaluar con datos de prueba.")
 
-    modelo = RandomForestClassifier(n_estimators=150, random_state=42)
-    modelo.fit(X_train, y_train)
+    resultados = []
+    modelos = crear_modelos()
 
-    predicciones = modelo.predict(X_test)
-    precision = accuracy_score(y_test, predicciones)
+    print("\nEntrenando modelos candidatos...")
+    for nombre_modelo, modelo_candidato in modelos.items():
+        try:
+            modelo_candidato.fit(X_train, y_train)
+            predicciones = modelo_candidato.predict(X_test)
+            precision = accuracy_score(y_test, predicciones)
+            resultados.append(
+                {
+                    "nombre": nombre_modelo,
+                    "modelo": modelo_candidato,
+                    "precision": precision,
+                    "predicciones": predicciones,
+                }
+            )
+            print(f"- {nombre_modelo}: {precision:.2%}")
+        except Exception as exc:
+            print(f"- {nombre_modelo}: no se pudo entrenar ({exc})")
 
-    print("Precision del modelo:", precision)
+    if not resultados:
+        print("No se pudo entrenar ningun modelo.")
+        return
+
+    mejor = max(resultados, key=lambda item: item["precision"])
+    modelo = mejor["modelo"]
+    predicciones = mejor["predicciones"]
+
+    print("\nComparacion de modelos:")
+    for resultado in sorted(resultados, key=lambda item: item["precision"], reverse=True):
+        marca = " <- mejor" if resultado is mejor else ""
+        print(f"{resultado['nombre']}: {resultado['precision']:.2%}{marca}")
+
+    print(f"\nModelo guardado: {mejor['nombre']}")
+    print("Precision del modelo:", mejor["precision"])
     print("\nReporte de clasificacion:")
     print(classification_report(y_test, predicciones, zero_division=0))
 
     MODELS_DIR.mkdir(exist_ok=True)
     artefacto = {
         "modelo": modelo,
+        "nombre_modelo": mejor["nombre"],
+        "precision": mejor["precision"],
+        "modelos_evaluados": {
+            resultado["nombre"]: resultado["precision"] for resultado in resultados
+        },
         "n_features": X.shape[1],
         "tipo_caracteristicas": "holistic_temporal" if X.shape[1] > ENTRADA_MODELO else "holistic_postura",
     }

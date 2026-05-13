@@ -1,15 +1,25 @@
 import csv
+import hashlib
 import sys
 import tempfile
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 from gtts import gTTS
 
 from src.config import DATASET_PATH, LEGACY_DATASET_PATH, MODEL_PATH, PROJECT_ROOT
 from src.database.seed import seed_database
+from src.services.avatar_animado import html_avatar_animado
+from src.services.avatar_lsc import construir_secuencia_avatar
+from src.services.recursos_lsc import (
+    guardar_archivo_recurso,
+    listar_items_lsc,
+    mapa_recursos_embebibles,
+)
 from src.services.traductor_texto import traducir_texto
+from src.services.transcriptor_voz import TranscripcionError, transcribir_audio, vosk_configurado
 from src.vocabulario_lsc import VOCABULARIO_INICIAL_LSC
 
 
@@ -71,6 +81,129 @@ def comando(modulo):
     return f"{python} src/{modulo}.py"
 
 
+def mostrar_secuencia_lsc(traduccion):
+    pasos = construir_secuencia_avatar(traduccion)
+    if not pasos:
+        return
+
+    recursos_reales = [paso for paso in pasos if paso["recurso_tipo"] and paso["recurso_data"]]
+    recursos_sin_embebido = [
+        paso for paso in pasos if paso["recurso_tipo"] and not paso["recurso_data"]
+    ]
+    faltantes = [paso for paso in pasos if not paso["recurso_tipo"]]
+    if recursos_reales:
+        st.success(f"Usando {len(recursos_reales)} recurso(s) real(es) validado(s).")
+    if recursos_sin_embebido:
+        st.warning(
+            "Hay recursos reales registrados, pero son muy pesados para reproducirlos "
+            "dentro del avatar. Use clips cortos o comprimidos."
+        )
+    if faltantes:
+        st.info(
+            f"{len(faltantes)} paso(s) aun usan animacion aproximada o deletreo."
+        )
+
+    st.write("Avatar / secuencia visual:")
+    components.html(
+        html_avatar_animado(pasos, reproducir_auto=True),
+        height=560,
+        scrolling=False,
+    )
+
+
+def mostrar_avatar_en_vivo():
+    st.write("Avatar en vivo:")
+    components.html(
+        html_avatar_animado(en_vivo=True, recursos=mapa_recursos_embebibles()),
+        height=560,
+        scrolling=False,
+    )
+
+
+def mostrar_gestor_recursos_lsc():
+    with st.expander("Cargar videos reales de LSC"):
+        st.write(
+            "Asocie cada palabra o frase con un video validado. Cuando exista video, "
+            "el sistema lo usara antes que la animacion aproximada."
+        )
+        st.caption("Tambien puede grabar con camara desde terminal:")
+        st.code(f"{comando('capturar_video_lsc')} hola --duracion 3", language="powershell")
+        items = listar_items_lsc()
+        if not items:
+            st.warning("Inicialice la base de datos antes de registrar recursos.")
+            return
+
+        opciones = {
+            f"{item['tipo']} | {item['texto']} | {item['categoria']}": item
+            for item in items
+        }
+        seleccion = st.selectbox("Palabra o frase", list(opciones.keys()))
+        item = opciones[seleccion]
+        tipos_recurso = ["video"] if item["tipo"] == "frase" else ["video", "imagen"]
+        tipo_recurso = st.radio("Tipo de recurso", tipos_recurso, horizontal=True)
+        archivo = st.file_uploader(
+            "Archivo validado",
+            type=["mp4", "mov", "avi", "webm", "mkv"] if tipo_recurso == "video" else ["jpg", "jpeg", "png", "webp"],
+        )
+
+        ruta_actual = item["ruta_video"] if tipo_recurso == "video" else item["ruta_imagen"]
+        if ruta_actual:
+            st.caption(f"Recurso actual: {ruta_actual}")
+
+        if st.button("Guardar recurso LSC"):
+            if archivo is None:
+                st.error("Seleccione un archivo.")
+            else:
+                try:
+                    ruta = guardar_archivo_recurso(
+                        archivo,
+                        item["texto"],
+                        item["tipo"],
+                        tipo_recurso,
+                    )
+                    st.success(f"Recurso guardado: {ruta}")
+                except Exception as exc:
+                    st.error(f"No se pudo guardar el recurso: {exc}")
+
+        resumen = pd.DataFrame(items)
+        resumen["tiene_video"] = resumen["ruta_video"].fillna("").ne("")
+        resumen["tiene_imagen"] = resumen["ruta_imagen"].fillna("").ne("")
+        st.dataframe(
+            resumen[["tipo", "texto", "categoria", "tiene_video", "tiene_imagen"]],
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
+def mostrar_resultado_traduccion_lsc(texto):
+    traduccion = traducir_texto(texto)
+    if not traduccion:
+        st.warning("No se encontraron palabras para traducir.")
+        return
+
+    secuencia = []
+    filas = []
+    for item in traduccion:
+        if item["estado"] == "deletrear":
+            secuencia.append("-".join(item["letras"]))
+        else:
+            secuencia.append(item["texto"])
+        filas.append(
+            {
+                "entrada": item["encontrado_por"],
+                "traduccion": item["texto"],
+                "categoria": item["categoria"],
+                "tipo": item["tipo"],
+                "estado": item["estado"],
+            }
+        )
+
+    st.write("Secuencia sugerida:")
+    st.code(" | ".join(secuencia), language="text")
+    mostrar_secuencia_lsc(traduccion)
+    st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+
+
 st.title("Traductor LSC con Inteligencia Artificial")
 st.write(
     "Prototipo para apoyar la comunicacion entre estudiantes con discapacidad auditiva, "
@@ -93,10 +226,9 @@ opcion = st.sidebar.radio(
         "Capturar dataset",
         "Entrenar modelo",
         "Traducir sena a texto",
-        "Traducir texto a LSC",
+        "Traducir voz/texto a LSC",
         "Ver dataset",
         "Texto a voz",
-        "Voz a texto",
         "Acerca del proyecto",
     ],
 )
@@ -153,50 +285,74 @@ elif opcion == "Traducir sena a texto":
     st.caption("Si el modelo predice sin_sena, reposo o transicion, no se agrega texto al parrafo.")
     st.code(comando("predecir_sena"), language="powershell")
 
-elif opcion == "Traducir texto a LSC":
-    st.subheader("Traducir texto a LSC")
+elif opcion == "Traducir voz/texto a LSC":
+    st.subheader("Traducir voz/texto a LSC")
     st.write(
-        "Escriba una oracion o parrafo. El sistema buscara primero frases completas, "
-        "luego palabras por categoria y finalmente deletreara lo que aun no este registrado."
+        "Grabe voz o escriba texto. El texto reconocido queda editable antes de mostrar "
+        "la secuencia LSC."
     )
 
-    if st.button("Inicializar o actualizar base de datos"):
+    if "texto_lsc" not in st.session_state:
+        st.session_state.texto_lsc = ""
+    if "ultimo_audio_lsc" not in st.session_state:
+        st.session_state.ultimo_audio_lsc = None
+    if "traducir_lsc_ahora" not in st.session_state:
+        st.session_state.traducir_lsc_ahora = False
+
+    if st.button("Inicializar o actualizar base de datos", key="seed_voz_texto_lsc"):
         seed_database()
         st.success("Base de datos LSC lista.")
 
+    mostrar_gestor_recursos_lsc()
+    mostrar_avatar_en_vivo()
+
+    motor_opciones = {
+        "Automatico": "auto",
+        "Vosk local": "vosk",
+        "Google online": "google",
+    }
+    motor_label = st.selectbox("Motor de voz a texto", list(motor_opciones.keys()))
+    if motor_label == "Vosk local" and not vosk_configurado():
+        st.warning(
+            "Vosk local aun no esta configurado. Puede usar Google online o escribir el texto."
+        )
+    elif motor_label == "Automatico" and not vosk_configurado():
+        st.caption("Automatico usara Google online mientras no exista el modelo local Vosk.")
+
+    audio = st.audio_input("Grabar voz")
+    if audio is not None:
+        audio_bytes = audio.getvalue()
+        audio_id = hashlib.sha1(audio_bytes).hexdigest()
+        if st.button("Transcribir voz"):
+            try:
+                texto_reconocido, motor_usado = transcribir_audio(
+                    audio_bytes,
+                    motor=motor_opciones[motor_label],
+                )
+                st.session_state.texto_lsc = texto_reconocido
+                st.session_state.ultimo_audio_lsc = audio_id
+                st.session_state.traducir_lsc_ahora = True
+                st.success(f"Texto reconocido con {motor_usado}: {texto_reconocido}")
+            except TranscripcionError as exc:
+                st.error(str(exc))
+            except Exception as exc:
+                st.error(f"No se pudo transcribir el audio: {exc}")
+
     texto = st.text_area(
-        "Texto",
+        "Texto reconocido o escrito",
+        key="texto_lsc",
         placeholder="Ejemplo: hola mama quiero agua azul por favor",
     )
 
-    if st.button("Traducir texto"):
-        if not texto.strip():
-            st.error("Debe escribir un texto.")
-        else:
-            traduccion = traducir_texto(texto)
-            if not traduccion:
-                st.warning("No se encontraron palabras para traducir.")
-            else:
-                secuencia = []
-                filas = []
-                for item in traduccion:
-                    if item["estado"] == "deletrear":
-                        secuencia.append("-".join(item["letras"]))
-                    else:
-                        secuencia.append(item["texto"])
-                    filas.append(
-                        {
-                            "entrada": item["encontrado_por"],
-                            "traduccion": item["texto"],
-                            "categoria": item["categoria"],
-                            "tipo": item["tipo"],
-                            "estado": item["estado"],
-                        }
-                    )
+    traducir_click = st.button("Traducir a LSC")
+    traducir_ahora = traducir_click or st.session_state.traducir_lsc_ahora
+    st.session_state.traducir_lsc_ahora = False
 
-                st.write("Secuencia sugerida:")
-                st.code(" | ".join(secuencia), language="text")
-                st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+    if traducir_ahora:
+        if not texto.strip():
+            st.error("Debe grabar voz o escribir un texto.")
+        else:
+            mostrar_resultado_traduccion_lsc(texto)
 
 elif opcion == "Ver dataset":
     st.subheader("Dataset capturado")
@@ -238,30 +394,6 @@ elif opcion == "Texto a voz":
             except Exception as exc:
                 st.error(f"No se pudo generar el audio: {exc}")
 
-elif opcion == "Voz a texto":
-    st.subheader("Voz a texto")
-    st.write("Puede grabar o cargar un audio corto en espanol para transcribirlo.")
-    audio = st.audio_input("Grabar audio")
-
-    if audio is None:
-        st.info("Cuando grabe un audio, se intentara transcribir con SpeechRecognition.")
-    else:
-        try:
-            import speech_recognition as sr
-
-            reconocedor = sr.Recognizer()
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as archivo:
-                archivo.write(audio.getbuffer())
-                ruta_audio = archivo.name
-
-            with sr.AudioFile(ruta_audio) as fuente:
-                datos_audio = reconocedor.record(fuente)
-
-            texto = reconocedor.recognize_google(datos_audio, language="es-CO")
-            st.success(texto)
-        except Exception as exc:
-            st.error(f"No se pudo transcribir el audio: {exc}")
-
 elif opcion == "Acerca del proyecto":
     st.subheader("Acerca del proyecto")
     st.write(
@@ -275,5 +407,5 @@ elif opcion == "Acerca del proyecto":
     )
     st.write(
         "Tecnologias: Python, OpenCV, MediaPipe, Scikit-learn, Streamlit, gTTS, "
-        "SpeechRecognition y Pandas."
+        "SpeechRecognition, Vosk y Pandas."
     )

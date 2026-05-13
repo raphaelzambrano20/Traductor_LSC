@@ -36,7 +36,7 @@ SENAS_INICIALES = [
     ("agua", "objetos", []),
     ("profesor", "personas", ["docente", "maestro"]),
     ("estudiante", "personas", ["alumno"]),
-    ("sordo", "personas", ["persona sorda"]),
+    ("sordo", "personas", []),
     ("yo", "pronombres", ["soy"]),
     ("tu", "pronombres", ["usted"]),
     ("bien", "estados", []),

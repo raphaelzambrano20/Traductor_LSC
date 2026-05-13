@@ -34,6 +34,9 @@ Traductor LSC con IA.
 - Se agrego modo de captura por duracion: corta 12 frames, media 20 frames, larga 32 frames.
 - Se agrego cuenta regresiva de 3 segundos antes de grabar muestra.
 - Se agrego seleccion de manos requeridas por captura: 1 o 2 manos.
+- Se actualizo `src/entrenar_modelo.py` para comparar `RandomForest`, `ExtraTrees` e `HistGradientBoosting` y guardar el mejor.
+- Con el dataset actual gano `ExtraTrees` con precision aproximada de 99.55%.
+- Se creo `src/validar_camara.py` para medir precision real con camara y guardar resultados en `data/validacion_camara.csv`.
 - Se agregaron puntos visibles de referencia en `src/detector_manos.py`: nariz, boca, orejas y pecho.
 - Los nombres visibles de orejas se ajustaron para la vista en modo espejo; los datos internos no se invirtieron.
 - Se agregaron caracteristicas explicitas de ubicacion por mano: zona mas cercana, lado del cuerpo y altura. `ENTRADA_MODELO` paso de 190 a 212 y el modo temporal de 570 a 636.
@@ -62,6 +65,16 @@ Traductor LSC con IA.
 - Conectar cada sena/frase con videos o imagenes reales en `data/videos/`.
 - Crear herramientas para agregar nuevas palabras, categorias y sinonimos desde la interfaz.
 - Integrar la base de datos con las etiquetas usadas al capturar y entrenar el modelo.
+- Proxima sesion: reforzar muestras de `tu`, `yo` y `sordo`, luego reentrenar y volver a validar.
+
+### Validacion real de camara
+- Archivo de resultados: `data/validacion_camara.csv`.
+- `hola`: fuerte, 88/88 predicciones correctas, confianza promedio aproximada 89.85%.
+- `sordo`: bueno, pero se confundio con `hola` 11 veces; confianza promedio aproximada 73.67%.
+- `yo`: acierta, pero confianza baja, aproximada 44.87%; se confundio con `sordo` 2 veces.
+- `tu`: acierta como prediccion final, pero esta debil; se confundio con `saludos`, `sordo`, `yo`, `bien` y `mal`; confianza promedio aproximada 45.69%.
+- Prioridad de refuerzo: `tu` primero, despues `yo`, despues `sordo`.
+- Tambien conviene reforzar `reposo`, `sin_sena` y `ninguna` para reducir activaciones falsas.
 
 ## Pendientes
 
@@ -70,11 +83,65 @@ Traductor LSC con IA.
 - Actualizar esta memoria al terminar cada bloque de trabajo.
 - Probar la app completa con Streamlit despues de los cambios de base de datos.
 
+## Sesion 2026-05-04
+
+### Hecho
+- Se intento mejorar la interfaz de Streamlit con modo cliente/desarrollador y camara embebida.
+- El usuario pidio volver al estado anterior del dia porque la camara embebida no funcionaba bien.
+- Se revirtieron los cambios de interfaz/camara embebida en `app.py`, `src/detector_manos.py` y `src/voz.py`.
+- Se elimino `src/services/voz_a_texto.py`, creado durante el intento de mejora de voz a texto.
+- La prediccion estable vuelve a ser la de `src/predecir_sena.py` con ventana local de OpenCV.
+- Se quito el sinonimo de la sena `sordo` en `data/traductor_lsc.db`.
+- Se actualizo `src/database/seed.py` para que `sordo` quede sin sinonimos y no se vuelva a insertar `persona sorda`.
+
+### Decisiones
+- No volver a tocar la prediccion estable sin separar primero la logica en un modulo reutilizable.
+- La interfaz grafica puede trabajarse, pero primero hay que proteger el flujo que ya predice bien con OpenCV.
+- Para llevar la camara al navegador conviene evaluar una solucion especifica para video en tiempo real, como `streamlit-webrtc`, en vez de improvisar con refrescos de `st.image`.
+- La base de datos conserva `sordo` como sena, pero sin sinonimos.
+
+### Pendiente
+- Si se retoma UI/UX, planear primero la arquitectura: motor de prediccion reutilizable + frontend.
+- Probar que `src/predecir_sena.py` sigue abriendo camara y prediciendo correctamente.
+- Mantener `sordo` sin sinonimos salvo que el usuario indique lo contrario.
+
 ## Comandos utiles
 
 ```powershell
-python -m streamlit run app.py
+.\venv\Scripts\python.exe -m streamlit run app.py
 ```
+
+## Sesion 2026-05-07
+
+### Hecho
+- Se agrego en `src/predecir_sena.py` un bloqueo para no repetir la misma sena mientras la persona mantiene la misma postura.
+- La misma sena solo se acepta otra vez cuando primero aparece `sin_sena`, baja la mano/calidad, se limpia el parrafo, o se detecta otra sena.
+- Se incorporo una primera version de comunicacion bidireccional voz/texto a LSC en `app.py`.
+- Se creo `src/services/avatar_lsc.py` para construir una secuencia visual: usa `ruta_video` o `ruta_imagen` desde SQLite si existen, y si no muestra un avatar basico como marcador inicial.
+- Se agrego la opcion `Traducir voz a LSC` en Streamlit: graba audio, transcribe con SpeechRecognition, traduce a secuencia LSC y muestra el avatar/recurso visual.
+- Se reemplazaron las opciones separadas `Traducir texto a LSC`, `Traducir voz a LSC` y `Voz a texto` por una sola pagina `Traducir voz/texto a LSC`.
+- La nueva pagina permite grabar voz, convertirla a texto, corregir/escribir texto en el mismo campo y luego traducirlo a LSC sin cambiar de pantalla.
+- Se creo `src/services/transcriptor_voz.py` con motores `Automatico`, `Vosk local` y `Google online`.
+- Se instalo `vosk==0.3.45` en el entorno virtual y se descargo el modelo local `models/vosk-model-small-es-0.42`.
+- Se actualizo `requirements.txt` con `vosk`, `srt`, `tqdm` y `websockets`.
+- Se actualizo `.gitignore` para no versionar el zip/modelo descargado de Vosk.
+- Se creo `src/services/avatar_animado.py` con un avatar en canvas que anima poses por sena conocida.
+- La pagina `Traducir voz/texto a LSC` ahora muestra un avatar en vivo con reconocimiento del navegador y reproduce la secuencia animada al traducir texto/audio.
+- El avatar animado tiene movimientos iniciales para `hola`, `saludos`, `yo`, `tu`, `ayuda`, `sordo`, `bien` y `mal`; las palabras desconocidas se muestran por deletreo.
+- Se creo `src/services/recursos_lsc.py` para cargar/listar videos o imagenes validadas y enlazarlas con `senas.ruta_video`, `senas.ruta_imagen` o `frases.ruta_video`.
+- Se agrego en la pagina `Traducir voz/texto a LSC` un panel `Cargar videos reales de LSC` para asociar recursos precisos a cada palabra/frase.
+- Se actualizo el reproductor del avatar para preferir videos/imagenes reales embebibles; si no existen, vuelve a la animacion aproximada.
+- Se creo `src/capturar_video_lsc.py` para grabar clips desde camara y enlazarlos automaticamente a la base de datos.
+
+### Decisiones
+- La pausa de voz de 1.5 segundos sigue sirviendo para reproducir lo detectado, pero no debe volver a crear `yo, yo, yo` si la mano sigue quieta en la misma sena.
+- El avatar inicia como representacion basica y se puede ir reemplazando por videos, imagenes o animaciones reales vinculadas en SQLite.
+- Para voz a texto se prioriza Vosk local cuando este configurado, porque no depende de internet ni de Google.
+- Las animaciones actuales del avatar son aproximaciones programadas para demostrar el flujo en tiempo real; para precision LSC real se deben capturar o modelar movimientos validados por cada sena.
+- La precision LSC se construira por recursos reales validados primero: `palabra/frase -> video corto validado`. El avatar programado queda como respaldo hasta que exista recurso real.
+- Tambien se puede usar el dataset propio capturado para alimentar el avatar: `data/senas.csv` contiene landmarks de manos y referencias corporales como orejas, boca, nariz/rostro y pecho.
+- Para animar desde el dataset se necesita conservar o reconstruir la secuencia temporal por muestra: `frame 1 -> puntos`, `frame 2 -> puntos`, etc. Con eso se pueden generar plantillas tipo `data/avatar_movimientos/hola.json`.
+- La ruta futura para avatar preciso queda: `dataset de senas -> plantilla temporal normalizada por cuerpo -> movimiento del avatar`; los videos validados siguen siendo la referencia visual para comparar y validar.
 
 ## Plantilla para actualizar
 
