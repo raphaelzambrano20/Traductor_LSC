@@ -32,7 +32,7 @@ CALIDAD_MINIMA_MANO = 0.08
 SEGUNDOS_CUENTA_REGRESIVA = 3
 
 
-def capturar_sena(nombre_sena, cantidad_muestras=100, frames_secuencia=FRAMES_SECUENCIA, manos_requeridas=1):
+def capturar_sena(nombre_sena, cantidad_muestras=100, frames_secuencia=FRAMES_SECUENCIA, manos_requeridas=1, fuente_camara=0):
     nombre_sena = normalizar_etiqueta(nombre_sena)
 
     if not nombre_sena:
@@ -40,10 +40,11 @@ def capturar_sena(nombre_sena, cantidad_muestras=100, frames_secuencia=FRAMES_SE
         return
 
     detector = DetectorManos()
-    camara = cv2.VideoCapture(0)
-    camara.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    camara.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-    camara.set(cv2.CAP_PROP_FPS, 30)
+    camara = cv2.VideoCapture(fuente_camara)
+    if fuente_camara == 0:
+        camara.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        camara.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        camara.set(cv2.CAP_PROP_FPS, 30)
     historial_landmarks = deque(maxlen=frames_secuencia)
     ultimo_guardado = 0
     grabando_movimiento = False
@@ -278,7 +279,19 @@ def pedir_manos_requeridas():
     return 1
 
 
+def elegir_camara():
+    print("\nFuente de camara:")
+    print("1. Camara local del PC (por defecto)")
+    print("2. Camara IP - DroidCam (celular por WiFi)")
+    entrada = input("Seleccione [1]: ").strip() or "1"
+    if entrada == "2":
+        url = input("URL de DroidCam [http://192.168.1.2:4747/video]: ").strip()
+        return url or "http://192.168.1.2:4747/video"
+    return 0
+
+
 if __name__ == "__main__":
+    fuente_camara = elegir_camara()
     nombre, existe_en_dataset, muestras_actuales = elegir_sena()
     etiqueta_normalizada = normalizar_etiqueta(nombre)
 
@@ -308,4 +321,5 @@ if __name__ == "__main__":
         cantidad,
         frames_secuencia=frames_secuencia,
         manos_requeridas=manos_requeridas,
+        fuente_camara=fuente_camara,
     )

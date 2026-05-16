@@ -143,6 +143,51 @@ Traductor LSC con IA.
 - Para animar desde el dataset se necesita conservar o reconstruir la secuencia temporal por muestra: `frame 1 -> puntos`, `frame 2 -> puntos`, etc. Con eso se pueden generar plantillas tipo `data/avatar_movimientos/hola.json`.
 - La ruta futura para avatar preciso queda: `dataset de senas -> plantilla temporal normalizada por cuerpo -> movimiento del avatar`; los videos validados siguen siendo la referencia visual para comparar y validar.
 
+## Sesion 2026-05-12
+
+### Hecho
+- Se reviso la estructura completa del proyecto y el estado actual del codigo.
+- Se identificaron todos los datasets en `data/` y se determino cuales se usan realmente.
+
+### Decisiones
+- El dataset activo es `data/senas.csv`. Todo lo que captura `capturar_dataset.py` va ahi.
+- `data/señas.csv` (con tilde) es legacy, solo funciona como fallback de emergencia si `senas.csv` no existe.
+- `data/senas_antes_lsc54.csv` es un backup manual, ningun script lo referencia.
+- `data/lsc54_convertido.csv` es la salida de `importar_lsc54.py` pero el entrenador nunca lo lee; no aporta al modelo actual.
+- `data/lsc54_util.csv` tampoco esta referenciado en ningun script.
+- `data/validacion_camara.csv` es solo un log de resultados, no es dataset de entrenamiento.
+- No existe ningun dataset publico directamente compatible con `senas.csv`. El formato es muy especifico: 212 caracteristicas que incluyen contexto corporal (zona, lado, altura, referencias nariz/boca/orejas/pecho) + secuencia temporal de 20 frames generada por la combinacion exacta de `detector_manos.py` + `extraer_caracteristicas_temporales()`. Para usar datos de LSC54/LSC50/LSC70 habria que procesar sus videos con el pipeline propio.
+- El dataset propio es personalizado, no completo: muy preciso para quien lo capturo, pero poco generalizable (una sola persona, una sola camara). Datasets publicos tienen mas vocabulario y mas personas pero son incompatibles en formato.
+
+### Pendiente
+- Reforzar muestras de `tu`, `yo` y `sordo` y reentrenar (prioridad alta).
+- Evaluar si vale la pena procesar videos de LSC54 con el pipeline propio para sumar muestras.
+
+## Sesion 2026-05-15
+
+### Decisiones
+- Para capturar muestras de distintas personas no se migrara a app movil.
+- Se usara el celular como camara IP via WiFi (DroidCam o IP Webcam) conectado al portatil.
+- Los dos integrantes del proyecto estaran presentes controlando la calidad de cada captura.
+- El pipeline actual (212 features, 20 frames, calidad de mano, cuenta regresiva) queda intacto.
+- El unico cambio necesario sera configurar la URL de la camara IP en `src/capturar_dataset.py`.
+
+### Pendiente
+- Instalar DroidCam o IP Webcam en el celular.
+- Ajustar la URL de camara en `src/capturar_dataset.py` para aceptar camara IP ademas de la local.
+- Probar la conexion en campo antes de la primera sesion de captura grupal.
+
+### Alcance del sistema y plan de 3 meses
+- El sistema es un traductor LSC bidireccional en tiempo real para aula fija.
+- Flujo 1: no oyente hace senas frente a camara → texto → voz para oyente.
+- Flujo 2: oyente habla por microfono → texto → avatar LSC para no oyente.
+- El proyecto es academico con 3 meses de plazo (desde 2026-05-15).
+- Decision: enfocarse en que todo funcione bien en PC. No se implementa version movil ni multi-dispositivo en esta entrega; se documenta como trabajo futuro.
+- Plan:
+  - Mes 1: reforzar muestras de `tu`, `yo`, `sordo`, ampliar vocabulario, reentrenar modelo.
+  - Mes 2: pulir flujo bidireccional completo en PC (estable y fluido).
+  - Mes 3: pruebas con usuarios reales, ajustes finales y documentacion de entrega.
+
 ## Plantilla para actualizar
 
 ```md
