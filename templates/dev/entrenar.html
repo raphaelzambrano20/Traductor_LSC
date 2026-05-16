@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Entrenar Modelo — Programador{% endblock %}
+
+{% block content %}
+<div class="page-header dev-header">
+  <div>
+    <h1>🧠 Entrenar Modelo</h1>
+    <p>Entrena el clasificador con las muestras capturadas</p>
+  </div>
+  <a href="/dev" class="btn-back">← Panel</a>
+</div>
+
+<div class="dev-stats" style="margin-bottom: 1.5rem;">
+  <div class="dev-stat">
+    <span class="dev-stat-number">{{ muestras }}</span>
+    <span class="dev-stat-label">Muestras disponibles</span>
+  </div>
+  <div class="dev-stat">
+    <span class="dev-stat-number">{{ clases }}</span>
+    <span class="dev-stat-label">Señas distintas</span>
+  </div>
+</div>
+
+{% if muestras < 10 %}
+<div class="alert alert-warning">
+  ⚠️ Hay muy pocas muestras. Capture al menos 30 muestras por seña antes de entrenar.
+</div>
+{% endif %}
+
+<div class="feature-box">
+  <div class="feature-steps">
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-text">
+        <h3>Comparación automática de modelos</h3>
+        <p>El sistema compara RandomForest, ExtraTrees e HistGradientBoosting y guarda el mejor</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-text">
+        <h3>Validación cruzada</h3>
+        <p>Se evalúa la precisión con datos separados para evitar sobreajuste</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-text">
+        <h3>Modelo listo para usar</h3>
+        <p>El modelo entrenado queda disponible automáticamente para la predicción</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="launch-box">
+    <p>El entrenamiento puede tardar varios minutos según la cantidad de muestras</p>
+    <button class="btn-launch btn-train" id="btn-entrenar" onclick="lanzarEntrenamiento()" {% if muestras < 10 %}disabled{% endif %}>
+      🧠 Iniciar entrenamiento
+    </button>
+    <p class="launch-hint" id="train-status"></p>
+  </div>
+</div>
+
+<div class="tips-box">
+  <h3>💡 Sobre el entrenamiento</h3>
+  <ul>
+    <li>El modelo anterior se reemplaza automáticamente si el nuevo es mejor</li>
+    <li>Con el dataset actual gana ExtraTrees (~99.55% en entrenamiento)</li>
+    <li>Reentrenar después de cada sesión de captura mejora la precisión real</li>
+    <li>La precisión en entrenamiento puede diferir de la precisión real con cámara</li>
+  </ul>
+</div>
+
+<script>
+async function lanzarEntrenamiento() {
+  const btn = document.getElementById('btn-entrenar');
+  const status = document.getElementById('train-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Iniciando...';
+  const r = await fetch('/dev/entrenar/lanzar', { method: 'POST' });
+  const data = await r.json();
+  if (data.ok) {
+    status.textContent = '✅ Entrenamiento iniciado en nueva ventana. Espera a que termine antes de predecir.';
+    status.style.color = 'var(--success)';
+  } else {
+    status.textContent = '❌ Error: ' + data.error;
+    status.style.color = 'var(--danger)';
+  }
+  btn.disabled = false;
+  btn.textContent = '🧠 Iniciar entrenamiento';
+}
+</script>
+{% endblock %}

@@ -188,6 +188,68 @@ Traductor LSC con IA.
   - Mes 2: pulir flujo bidireccional completo en PC (estable y fluido).
   - Mes 3: pruebas con usuarios reales, ajustes finales y documentacion de entrega.
 
+## Arquitectura objetivo del software (decidida 2026-05-15)
+
+### Vision
+Software descargable como WhatsApp: se instala una vez, se actualiza automaticamente sin reinstalar.
+Cualquier colegio o institucion puede descargarlo y usarlo en sus salones.
+
+### Arquitectura
+```
+SERVIDOR CENTRAL (nube, ~$6/mes VPS)
+├── API Flask/FastAPI
+├── MariaDB (vocabulario, contenido pedagogico, versiones del modelo)
+└── Modelo entrenado (descargable por el cliente)
+         │ Internet
+         ↓
+SOFTWARE INSTALADO EN EL PC DEL AULA (.exe via PyInstaller)
+├── Camara + MediaPipe (corre 100% local)
+├── Descarga modelo actualizado del servidor
+├── Consulta vocabulario del servidor
+└── Interfaz HTML/CSS/JS via Flask local
+```
+
+### Lo que se actualiza automaticamente (sin reinstalar)
+- Modelo entrenado (nuevas senas)
+- Vocabulario LSC en base de datos
+- Contenido pedagogico
+
+### Lo que requiere nueva descarga
+- Cambios grandes de interfaz
+- Nuevas funcionalidades mayores
+
+### Pantallas del software
+1. Inicio — accesos rapidos a funciones principales
+2. Predecir seña — deteccion en tiempo real (camara local)
+3. Voz/texto a LSC — avatar animado con microfono
+4. Aprender LSC — contenido pedagogico basico
+5. Acerca del proyecto
+
+### Funciones admin (ocultas al usuario final)
+- Capturar dataset
+- Entrenar modelo
+- Ver dataset
+- Gestionar vocabulario
+
+### Base de datos
+- Servidor: MariaDB (central, en la nube)
+- Cliente local: cache SQLite para funcionar sin internet
+
+### Stack tecnologico
+- Backend servidor: Flask o FastAPI + MariaDB
+- Backend cliente: Flask local (servidor embebido en el .exe)
+- Frontend: HTML + CSS + JS (responsive, disenado para ninos/jovenes)
+- Empaquetado: PyInstaller (.exe instalable)
+- ML: modelo actual intacto (sklearn ExtraTrees)
+- Camara: OpenCV + MediaPipe (local)
+
+### Plan de construccion por fases
+- Fase 1: Redisenar interfaz con Flask + HTML/CSS/JS (reemplaza Streamlit)
+- Fase 2: Migrar base de datos a MariaDB con SQLAlchemy
+- Fase 3: Montar servidor central con API REST
+- Fase 4: Implementar auto-update del modelo y vocabulario
+- Fase 5: Empaquetar con PyInstaller como .exe instalable
+
 ## Plantilla para actualizar
 
 ```md

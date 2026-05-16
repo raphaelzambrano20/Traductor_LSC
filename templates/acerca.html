@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Acerca — Traductor LSC{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>ℹ️ Acerca del Proyecto</h1>
+  <p>Conoce más sobre este sistema de traducción bidireccional</p>
+</div>
+
+<div class="acerca-grid">
+  <div class="acerca-card">
+    <div class="acerca-icon">🎯</div>
+    <h3>Objetivo</h3>
+    <p>Facilitar la comunicación bidireccional entre personas oyentes y personas con discapacidad auditiva mediante inteligencia artificial y visión por computador.</p>
+  </div>
+
+  <div class="acerca-card">
+    <div class="acerca-icon">🔄</div>
+    <h3>Comunicación Bidireccional</h3>
+    <p>La persona no oyente hace señas frente a la cámara y el sistema las convierte en texto y voz. La persona oyente habla y el sistema muestra la seña en LSC a través de un avatar.</p>
+  </div>
+
+  <div class="acerca-card">
+    <div class="acerca-icon">🧠</div>
+    <h3>Tecnología</h3>
+    <p>Python · OpenCV · MediaPipe · Scikit-learn · Flask · SQLite · Vosk · gTTS</p>
+  </div>
+
+  <div class="acerca-card">
+    <div class="acerca-icon">📖</div>
+    <h3>Lengua de Señas Colombiana</h3>
+    <p>La LSC es la lengua natural de la comunidad sorda de Colombia, reconocida oficialmente por la Ley 982 de 2005.</p>
+  </div>
+</div>
+
+<div class="version-box">
+  <span class="version-badge">v1.0 — Fase 1</span>
+  <p>Proyecto académico en desarrollo activo</p>
+</div>
+{% endblock %}

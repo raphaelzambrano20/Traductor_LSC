@@ -25,6 +25,7 @@ from config import (
 from detector_manos import DetectorManos
 from database.registro_vocabulario import obtener_sinonimos_sena
 from voz import hablar_windows
+from camara_stream import CamaraStream
 
 
 CAMERA_WIDTH = 1280
@@ -121,14 +122,25 @@ def calcular_movimiento_manos(manos_actuales, manos_anteriores):
     return float(np.mean(np.abs(manos_actuales - manos_anteriores)))
 
 
-def predecir():
+def elegir_camara():
+    print("\nFuente de camara:")
+    print("1. Camara local del PC (por defecto)")
+    print("2. Camara IP - DroidCam (celular por WiFi)")
+    entrada = input("Seleccione [1]: ").strip() or "1"
+    if entrada == "2":
+        url = input("URL de DroidCam [http://192.168.1.2:4747/video]: ").strip()
+        return url or "http://192.168.1.2:4747/video"
+    return 0
+
+
+def predecir(fuente_camara=0):
     if not MODEL_PATH.exists():
         print("No existe el modelo. Primero ejecute: python src/entrenar_modelo.py")
         return
 
     modelo, n_features = cargar_modelo()
     detector = DetectorManos()
-    camara = cv2.VideoCapture(0)
+    camara = CamaraStream(fuente_camara)
     camara.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
     camara.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
     camara.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
@@ -280,53 +292,36 @@ def predecir():
         frame_mostrado = cv2.flip(frame, 1)
         detector.dibujar_referencias_visibles(frame_mostrado, espejo=True)
         detector.dibujar_ubicaciones_manos(frame_mostrado, espejo=True)
-        cv2.putText(
-            frame_mostrado,
-            texto_prediccion,
-            (10, 40),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 255, 0),
-            2,
-        )
-        cv2.putText(
-            frame_mostrado,
-            "Q salir | C limpiar parrafo | V hablar parrafo | Voz: 1.5s sin movimiento",
-            (10, 80),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (255, 255, 255),
-            2,
-        )
-        cv2.putText(
-            frame_mostrado,
-            "Parrafo: " + " ".join(parrafo[-10:]),
-            (10, 120),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.65,
-            (255, 255, 255),
-            2,
-        )
-        color_calidad = (0, 255, 0) if calidad_mano_ok else (0, 0, 255)
-        cv2.putText(
-            frame_mostrado,
-            f"Manos visibles: {manos_visibles} | Calidad: {calidad_manos:.2f}",
-            (10, 155),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.65,
-            color_calidad,
-            2,
-        )
+
+        h, w = frame_mostrado.shape[:2]
+        overlay = frame_mostrado.copy()
+
+        # Barra superior
+        cv2.rectangle(overlay, (0, 0), (w, 56), (0, 0, 0), -1)
+        # Barra inferior
+        cv2.rectangle(overlay, (0, h - 40), (w, h), (0, 0, 0), -1)
+        cv2.addWeighted(overlay, 0.45, frame_mostrado, 0.55, 0, frame_mostrado)
+
+        # Texto prediccion (barra superior izquierda)
+        cv2.putText(frame_mostrado, texto_prediccion, (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 120), 2)
+
+        # Parrafo (barra superior derecha)
+        parrafo_texto = "  ".join(parrafo[-8:]) or "-"
+        cv2.putText(frame_mostrado, f"Parrafo: {parrafo_texto}", (10, 52),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
+
+        # Barra inferior: calidad y atajos
+        color_calidad = (0, 220, 80) if calidad_mano_ok else (0, 0, 255)
+        cv2.putText(frame_mostrado,
+                    f"Manos: {manos_visibles}  Cal: {calidad_manos:.2f}  |  Q salir  C limpiar  V hablar",
+                    (10, h - 14), cv2.FONT_HERSHEY_SIMPLEX, 0.42, color_calidad, 1)
+
         if n_features > ENTRADA_MODELO:
-            cv2.putText(
-                frame_mostrado,
-                f"Modo movimiento: {len(historial_landmarks)}/{FRAMES_SECUENCIA} frames",
-                (10, 190),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.65,
-                (255, 255, 255),
-                2,
-            )
+            frames_actuales = len(historial_landmarks)
+            cv2.putText(frame_mostrado,
+                        f"frames: {frames_actuales}/{FRAMES_SECUENCIA}",
+                        (w - 160, h - 14), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (180, 180, 180), 1)
 
         cv2.imshow("Traductor LSC", frame_mostrado)
 
@@ -354,4 +349,5 @@ def predecir():
 
 
 if __name__ == "__main__":
-    predecir()
+    fuente_camara = elegir_camara()
+    predecir(fuente_camara)

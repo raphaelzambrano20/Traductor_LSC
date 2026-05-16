@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Panel Programador — Traductor LSC{% endblock %}
+
+{% block content %}
+<div class="page-header dev-header">
+  <div>
+    <h1>⚙️ Panel de Programador</h1>
+    <p>Gestiona el dataset, entrena el modelo y monitorea el sistema</p>
+  </div>
+  <button class="btn-logout" onclick="cerrarSesionDev()">🚪 Cerrar sesión</button>
+</div>
+
+<div class="dev-stats">
+  <div class="dev-stat">
+    <span class="dev-stat-number">{{ muestras }}</span>
+    <span class="dev-stat-label">Muestras totales</span>
+  </div>
+  <div class="dev-stat">
+    <span class="dev-stat-number">{{ clases }}</span>
+    <span class="dev-stat-label">Señas distintas</span>
+  </div>
+  <div class="dev-stat">
+    <span class="dev-stat-number">{{ '✓' if modelo_listo else '✗' }}</span>
+    <span class="dev-stat-label">Modelo {{ 'entrenado' if modelo_listo else 'sin entrenar' }}</span>
+  </div>
+</div>
+
+<div class="dev-cards">
+  <a href="/dev/capturar" class="dev-card">
+    <div class="dev-card-icon">📸</div>
+    <h3>Capturar Dataset</h3>
+    <p>Agrega nuevas muestras de señas LSC con la cámara</p>
+    <span class="dev-card-btn">Ir a captura</span>
+  </a>
+
+  <a href="/dev/entrenar" class="dev-card">
+    <div class="dev-card-icon">🧠</div>
+    <h3>Entrenar Modelo</h3>
+    <p>Entrena el clasificador con las muestras capturadas</p>
+    <span class="dev-card-btn">Ir a entrenamiento</span>
+  </a>
+
+  <a href="/dev/dataset" class="dev-card">
+    <div class="dev-card-icon">📊</div>
+    <h3>Ver Dataset</h3>
+    <p>Revisa el estado actual de las muestras por seña</p>
+    <span class="dev-card-btn">Ver dataset</span>
+  </a>
+</div>
+
+<script>
+async function cerrarSesionDev() {
+  await fetch('/api/dev/logout', { method: 'POST' });
+  window.location.href = '/';
+}
+</script>
+{% endblock %}

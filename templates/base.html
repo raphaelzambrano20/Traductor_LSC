@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Traductor LSC{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="nav-logo">🤟 Traductor LSC</a>
+    <ul class="nav-links" id="nav-links">
+      <li><a href="/" class="{% if request.path == '/' %}active{% endif %}">Inicio</a></li>
+      <li><a href="/predecir" class="{% if request.path == '/predecir' %}active{% endif %}">Predecir Seña</a></li>
+      <li><a href="/comunicar" class="{% if request.path == '/comunicar' %}active{% endif %}">Voz a LSC</a></li>
+      <li><a href="/aprender" class="{% if request.path == '/aprender' %}active{% endif %}">Aprender</a></li>
+      <li><a href="/acerca" class="{% if request.path == '/acerca' %}active{% endif %}">Acerca</a></li>
+      <li class="nav-dev-sep" id="nav-dev-sep" style="display:none"></li>
+      <li id="nav-dev-links" style="display:none">
+        <a href="/dev" class="nav-dev-link {% if request.path.startswith('/dev') %}active{% endif %}">⚙️ Programador</a>
+      </li>
+    </ul>
+    <div class="nav-actions">
+      <button class="btn-dev" id="btn-dev" onclick="abrirModalDev()">🔐 Modo Programador</button>
+      <button class="nav-toggle" onclick="toggleMenu()">☰</button>
+    </div>
+  </nav>
+
+  <!-- Modal contraseña -->
+  <div class="modal-overlay" id="modal-dev" onclick="cerrarModalDev(event)">
+    <div class="modal-box">
+      <h2>🔐 Acceso Programador</h2>
+      <p>Ingresa la contraseña para acceder al panel de desarrollo</p>
+      <input type="password" id="input-password" class="modal-input" placeholder="Contraseña"
+             onkeydown="if(event.key==='Enter') verificarPassword()">
+      <p class="modal-error" id="modal-error"></p>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" onclick="cerrarModalDev()">Cancelar</button>
+        <button class="btn-modal-ok" onclick="verificarPassword()">Ingresar</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <p>Traductor LSC con IA &mdash; Proyecto académico</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

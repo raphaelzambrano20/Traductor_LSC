@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Predecir Seña — Traductor LSC{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📷 Predecir Seña en Tiempo Real</h1>
+  <p>El sistema detecta tus señas a través de la cámara y las convierte en texto y voz</p>
+</div>
+
+{% if not modelo_listo %}
+<div class="alert alert-warning">
+  ⚠️ El modelo no está entrenado aún. Primero capture muestras y entrene el modelo desde la terminal.
+</div>
+{% endif %}
+
+<div class="feature-box">
+  <div class="feature-steps">
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-text">
+        <h3>Posiciónate frente a la cámara</h3>
+        <p>Asegúrate de que tu rostro, hombros y manos sean visibles</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-text">
+        <h3>Haz la seña con claridad</h3>
+        <p>El indicador de calidad te mostrará si la cámara detecta bien tu mano</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-text">
+        <h3>El sistema traduce automáticamente</h3>
+        <p>La seña detectada aparecerá como texto y se reproducirá en voz</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="launch-box">
+    <p>La predicción abre una ventana con acceso directo a tu cámara</p>
+    <button class="btn-launch" id="btn-lanzar" onclick="lanzarPrediccion()" {% if not modelo_listo %}disabled{% endif %}>
+      🚀 Iniciar predicción
+    </button>
+    <p class="launch-hint" id="launch-status"></p>
+  </div>
+</div>
+
+<div class="tips-box">
+  <h3>💡 Consejos para mejores resultados</h3>
+  <ul>
+    <li>Usa buena iluminación, preferiblemente luz frontal</li>
+    <li>Mantén las manos dentro del encuadre de la cámara</li>
+    <li>Haz las señas de forma clara y a velocidad normal</li>
+    <li>El fondo debe ser lo más uniforme posible</li>
+  </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function lanzarPrediccion() {
+  const btn = document.getElementById('btn-lanzar');
+  const status = document.getElementById('launch-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Abriendo...';
+  fetch('/predecir/lanzar', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        status.textContent = '✅ Ventana de predicción abierta correctamente';
+        status.style.color = 'var(--success)';
+      } else {
+        status.textContent = '❌ Error: ' + data.error;
+        status.style.color = 'var(--danger)';
+      }
+      btn.disabled = false;
+      btn.textContent = '🚀 Iniciar predicción';
+    })
+    .catch(() => {
+      status.textContent = '❌ No se pudo conectar con el servidor';
+      status.style.color = 'var(--danger)';
+      btn.disabled = false;
+      btn.textContent = '🚀 Iniciar predicción';
+    });
+}
+</script>
+{% endblock %}

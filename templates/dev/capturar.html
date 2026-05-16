@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Capturar Dataset — Programador{% endblock %}
+
+{% block content %}
+<div class="page-header dev-header">
+  <div>
+    <h1>📸 Capturar Dataset</h1>
+    <p>Abre la herramienta de captura de señas con la cámara</p>
+  </div>
+  <a href="/dev" class="btn-back">← Panel</a>
+</div>
+
+<div class="feature-box">
+  <div class="feature-steps">
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-text">
+        <h3>Selecciona la cámara</h3>
+        <p>El script preguntará si usar cámara local o DroidCam por WiFi</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-text">
+        <h3>Elige o crea la seña</h3>
+        <p>Selecciona una seña existente para agregar muestras o escribe el nombre de una nueva</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-text">
+        <h3>Captura las muestras</h3>
+        <p>Usa la tecla R para iniciar cada captura. El sistema exige buena calidad de mano</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="launch-box">
+    <p>Se abrirá una nueva ventana de terminal con la herramienta de captura</p>
+    <button class="btn-launch" id="btn-capturar" onclick="lanzarCaptura()">
+      📸 Iniciar captura
+    </button>
+    <p class="launch-hint" id="captura-status"></p>
+  </div>
+</div>
+
+<div class="tips-box">
+  <h3>💡 Recomendaciones para capturar</h3>
+  <ul>
+    <li>Captura mínimo 50 muestras por seña para buenos resultados</li>
+    <li>Varía la posición y ángulo ligeramente entre muestras</li>
+    <li>Captura también <strong>sin_sena</strong> y <strong>reposo</strong> para reducir falsos positivos</li>
+    <li>Puedes usar DroidCam para capturar con el celular como cámara</li>
+    <li>Después de capturar, recuerda reentrenar el modelo</li>
+  </ul>
+</div>
+
+<script>
+async function lanzarCaptura() {
+  const btn = document.getElementById('btn-capturar');
+  const status = document.getElementById('captura-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Abriendo...';
+  const r = await fetch('/dev/capturar/lanzar', { method: 'POST' });
+  const data = await r.json();
+  if (data.ok) {
+    status.textContent = '✅ Herramienta de captura abierta en nueva ventana';
+    status.style.color = 'var(--success)';
+  } else {
+    status.textContent = '❌ Error: ' + data.error;
+    status.style.color = 'var(--danger)';
+  }
+  btn.disabled = false;
+  btn.textContent = '📸 Iniciar captura';
+}
+</script>
+{% endblock %}

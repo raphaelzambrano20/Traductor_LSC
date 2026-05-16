@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+{% block title %}Voz a LSC — Traductor LSC{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🎤 Traductor en Tiempo Real</h1>
+  <p>Habla y el sistema mostrará las señas automáticamente como un intérprete</p>
+</div>
+
+<div class="rt-layout">
+
+  <!-- Panel izquierdo: micrófono y texto -->
+  <div class="rt-panel-input">
+    <div class="mic-status" id="mic-status">
+      <div class="mic-icon" id="mic-icon">🎙️</div>
+      <span id="mic-label">Presiona para hablar</span>
+    </div>
+
+    <button class="btn-mic" id="btn-mic" onclick="toggleEscucha()">
+      Iniciar traducción
+    </button>
+
+    <div class="transcript-box">
+      <div class="transcript-label">Escuchando:</div>
+      <div id="texto-interim" class="texto-interim">—</div>
+      <div id="texto-final" class="texto-final"></div>
+    </div>
+
+    <div class="cola-box">
+      <div class="transcript-label">Cola de señas:</div>
+      <div id="cola-senas" class="cola-senas">
+        <span class="cola-vacia">Sin señas en cola</span>
+      </div>
+    </div>
+
+    <div class="texto-manual-box">
+      <div class="transcript-label">O escribe directamente:</div>
+      <div style="display:flex; gap:0.5rem;">
+        <input type="text" id="texto-manual" class="texto-manual-input"
+               placeholder="Escribe y presiona Enter..."
+               onkeydown="if(event.key==='Enter') traducirManual()">
+        <button class="btn-traducir-manual" onclick="traducirManual()">→</button>
+      </div>
+    </div>
+
+    <button class="btn-limpiar" onclick="limpiarTodo()">🗑️ Limpiar</button>
+  </div>
+
+  <!-- Panel derecho: avatar -->
+  <div class="rt-panel-avatar">
+    <div class="avatar-header">
+      <span id="seña-actual" class="seña-actual-label">—</span>
+      <span id="seña-contador" class="seña-contador"></span>
+    </div>
+    <canvas id="avatar-canvas" width="400" height="420"></canvas>
+    <div id="avatar-fallback" class="avatar-fallback" style="display:none">
+      <span id="fallback-texto">🤟</span>
+    </div>
+  </div>
+
+</div>
+
+<div id="alerta-browser" class="alert alert-warning" style="display:none">
+  ⚠️ Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ─── Estado global ───────────────────────────────────────────────────────────
+const CONEXIONES = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [5,9],[9,10],[10,11],[11,12],
+  [9,13],[13,14],[14,15],[15,16],
+  [13,17],[17,18],[18,19],[19,20],
+  [0,17]
+];
+
+let recognition = null;
+let escuchando = false;
+let colaSignos = [];
+let mostrandoSigno = false;
+let cacheSignos = {};
+let poseActual = null;
+let poseObjetivo = null;
+let frameAnimacion = null;
+
+// ─── Canvas ───────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('avatar-canvas');
+const ctx = canvas.getContext('2d');
+
+function dibujarCuerpo() {
+  const cx = canvas.width / 2;
+  const skin = '#f5c9a0';
+  const skinDark = '#d4a070';
+  const shirtColor = '#a8c8e8';
+  const shirtShadow = '#88a8c8';
+  const tieColor = '#e02040';
+  const tieDark = '#a01030';
+  const hairColor = '#2a1a0a';
+
+  // ── Cabello ───────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.ellipse(cx, 54, 42, 48, 0, Math.PI, 0);
+  ctx.fillStyle = hairColor;
+  ctx.fill();
+  // Flequillo
+  ctx.beginPath();
+  ctx.ellipse(cx - 12, 22, 18, 10, -0.3, Math.PI, 0);
+  ctx.fillStyle = hairColor;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 10, 20, 16, 9, 0.3, Math.PI, 0);
+  ctx.fillStyle = hairColor;
+  ctx.fill();
+
+  // ── Cabeza ────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.ellipse(cx, 68, 38, 44, 0, 0, Math.PI * 2);
+  ctx.fillStyle = skin;
+  ctx.fill();
+  ctx.strokeStyle = skinDark;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // ── Orejas ────────────────────────────────────────────────
+  [cx - 38, cx + 38].forEach((ex, i) => {
+    ctx.beginPath();
+    ctx.ellipse(ex, 70, 7, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = skin;
+    ctx.fill();
+    ctx.strokeStyle = skinDark;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // ── Cejas ─────────────────────────────────────────────────
+  ctx.strokeStyle = hairColor;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  [[-14, -1], [14, 1]].forEach(([dx, tilt]) => {
+    ctx.beginPath();
+    ctx.moveTo(cx + dx - 9, 48 + tilt);
+    ctx.quadraticCurveTo(cx + dx, 44 + tilt, cx + dx + 9, 48 + tilt);
+    ctx.stroke();
+  });
+
+  // ── Ojos ─────────────────────────────────────────────────
+  [-14, 14].forEach(dx => {
+    // Blanco del ojo
+    ctx.beginPath();
+    ctx.ellipse(cx + dx, 60, 9, 7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.strokeStyle = skinDark;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Iris
+    ctx.beginPath();
+    ctx.arc(cx + dx, 61, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#4a3020';
+    ctx.fill();
+    // Pupila
+    ctx.beginPath();
+    ctx.arc(cx + dx, 61, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#111';
+    ctx.fill();
+    // Brillo
+    ctx.beginPath();
+    ctx.arc(cx + dx + 2, 59, 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+  });
+
+  // ── Nariz ─────────────────────────────────────────────────
+  ctx.strokeStyle = skinDark;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx, 68);
+  ctx.quadraticCurveTo(cx + 6, 80, cx + 4, 84);
+  ctx.moveTo(cx + 4, 84);
+  ctx.quadraticCurveTo(cx, 87, cx - 4, 84);
+  ctx.stroke();
+
+  // ── Boca / Sonrisa ────────────────────────────────────────
+  ctx.strokeStyle = tieDark;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 12, 94);
+  ctx.quadraticCurveTo(cx, 102, cx + 12, 94);
+  ctx.stroke();
+
+  // ── Cuello ────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.rect(cx - 12, 108, 24, 20);
+  ctx.fillStyle = skin;
+  ctx.fill();
+
+  // ── Camisa / Cuerpo ───────────────────────────────────────
+  ctx.beginPath();
+  ctx.moveTo(cx - 56, 125);
+  ctx.lineTo(cx + 56, 125);
+  ctx.lineTo(cx + 50, 280);
+  ctx.lineTo(cx - 50, 280);
+  ctx.closePath();
+  ctx.fillStyle = shirtColor;
+  ctx.fill();
+  ctx.strokeStyle = shirtShadow;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Cuello camisa (V)
+  ctx.beginPath();
+  ctx.moveTo(cx - 14, 120);
+  ctx.lineTo(cx, 150);
+  ctx.lineTo(cx + 14, 120);
+  ctx.strokeStyle = shirtShadow;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // ── Corbata ───────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.moveTo(cx - 8, 128);
+  ctx.lineTo(cx + 8, 128);
+  ctx.lineTo(cx + 14, 155);
+  ctx.lineTo(cx, 210);
+  ctx.lineTo(cx - 14, 155);
+  ctx.closePath();
+  ctx.fillStyle = tieColor;
+  ctx.fill();
+  // Nudo corbata
+  ctx.beginPath();
+  ctx.moveTo(cx - 8, 128);
+  ctx.lineTo(cx + 8, 128);
+  ctx.lineTo(cx + 6, 140);
+  ctx.lineTo(cx, 145);
+  ctx.lineTo(cx - 6, 140);
+  ctx.closePath();
+  ctx.fillStyle = tieDark;
+  ctx.fill();
+
+  // ── Hombros / Mangas ──────────────────────────────────────
+  ctx.fillStyle = shirtColor;
+  ctx.strokeStyle = shirtShadow;
+  ctx.lineWidth = 1.5;
+  // Manga izquierda
+  ctx.beginPath();
+  ctx.moveTo(cx - 56, 125);
+  ctx.lineTo(cx - 90, 155);
+  ctx.lineTo(cx - 95, 270);
+  ctx.lineTo(cx - 65, 275);
+  ctx.lineTo(cx - 56, 200);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Manga derecha
+  ctx.beginPath();
+  ctx.moveTo(cx + 56, 125);
+  ctx.lineTo(cx + 90, 155);
+  ctx.lineTo(cx + 95, 270);
+  ctx.lineTo(cx + 65, 275);
+  ctx.lineTo(cx + 56, 200);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Puños camisa
+  [cx - 80, cx + 62].forEach((px, i) => {
+    ctx.beginPath();
+    ctx.rect(i === 0 ? px - 10 : px, 265, 28, 14);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.strokeStyle = shirtShadow;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+}
+
+function escalarPunto(punto, mano) {
+  // Cada mano ocupa la mitad lateral del canvas, alineada con las mangas
+  const alto = 160;
+  const offsetY = 240;
+  const mitad = canvas.width / 2;
+  let x, y;
+  if (mano === 'der') {
+    // Mano derecha del intérprete → lado izquierdo del canvas
+    x = 10 + (1 - punto[0]) * (mitad - 20);
+  } else {
+    // Mano izquierda → lado derecho del canvas
+    x = mitad + 10 + punto[0] * (mitad - 20);
+  }
+  y = offsetY + punto[1] * alto;
+  return [x, y];
+}
+
+function interpolar(a, b, t) {
+  if (!a || !b) return b;
+  return a.map((pa, i) => [
+    pa[0] + (b[i][0] - pa[0]) * t,
+    pa[1] + (b[i][1] - pa[1]) * t,
+  ]);
+}
+
+function dibujarMano(puntos, mano, color) {
+  if (!puntos) return;
+  const pts = puntos.map(p => escalarPunto(p, mano));
+
+  // Conexiones
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  CONEXIONES.forEach(([a, b]) => {
+    if (!pts[a] || !pts[b]) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[a][0], pts[a][1]);
+    ctx.lineTo(pts[b][0], pts[b][1]);
+    ctx.stroke();
+  });
+
+  // Puntos
+  pts.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], i === 0 ? 5 : 3, 0, Math.PI * 2);
+    ctx.fillStyle = i === 0 ? color : '#fff';
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+}
+
+function renderFrame(pose) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  dibujarCuerpo();
+  if (pose) {
+    dibujarMano(pose.mano_der, 'der', '#f72585');
+    dibujarMano(pose.mano_izq, 'izq', '#4cc9f0');
+  }
+}
+
+function animarTransicion(desde, hasta, duracion, callback) {
+  const inicio = performance.now();
+  function frame(ahora) {
+    const t = Math.min((ahora - inicio) / duracion, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    const interpolada = {
+      mano_der: interpolar(desde?.mano_der, hasta?.mano_der, ease),
+      mano_izq: interpolar(desde?.mano_izq, hasta?.mano_izq, ease),
+    };
+    renderFrame(interpolada);
+    if (t < 1) {
+      frameAnimacion = requestAnimationFrame(frame);
+    } else {
+      renderFrame(hasta);
+      if (callback) callback();
+    }
+  }
+  if (frameAnimacion) cancelAnimationFrame(frameAnimacion);
+  frameAnimacion = requestAnimationFrame(frame);
+}
+
+// ─── Gestión de cola ──────────────────────────────────────────────────────────
+function actualizarCola() {
+  const el = document.getElementById('cola-senas');
+  if (colaSignos.length === 0) {
+    el.innerHTML = '<span class="cola-vacia">Sin señas en cola</span>';
+    return;
+  }
+  el.innerHTML = colaSignos.map((s, i) =>
+    `<span class="cola-tag ${i===0?'cola-tag-activo':''}">${s}</span>`
+  ).join('');
+}
+
+async function obtenerPose(sena) {
+  if (cacheSignos[sena] !== undefined) return cacheSignos[sena];
+  try {
+    const r = await fetch(`/api/landmarks/${encodeURIComponent(sena)}`);
+    if (!r.ok) { cacheSignos[sena] = null; return null; }
+    const data = await r.json();
+    const pose = data.ok ? data : null;
+    cacheSignos[sena] = pose;
+    return pose;
+  } catch {
+    cacheSignos[sena] = null;
+    return null;
+  }
+}
+
+function finalizarSigno() {
+  mostrandoSigno = false;
+  setTimeout(procesarCola, 500);
+}
+
+async function procesarCola() {
+  if (mostrandoSigno || colaSignos.length === 0) return;
+  mostrandoSigno = true;
+
+  const sena = colaSignos.shift();
+  actualizarCola();
+
+  document.getElementById('seña-actual').textContent = sena;
+  document.getElementById('seña-contador').textContent =
+    colaSignos.length > 0 ? `+${colaSignos.length} en cola` : '';
+
+  let pose = null;
+  try { pose = await obtenerPose(sena); } catch { pose = null; }
+
+  const desde = poseActual;
+  poseActual = pose;
+
+  const fallback = document.getElementById('avatar-fallback');
+  if (!pose || (!pose.mano_der && !pose.mano_izq)) {
+    // Sin landmarks: mostrar nombre de la seña sobre el avatar
+    canvas.style.opacity = '0.6';
+    fallback.style.display = 'flex';
+    document.getElementById('fallback-texto').textContent = sena.toUpperCase();
+    renderFrame(null);
+    setTimeout(finalizarSigno, 900);
+  } else {
+    canvas.style.opacity = '1';
+    fallback.style.display = 'none';
+    animarTransicion(desde, pose, 450, finalizarSigno);
+  }
+}
+
+async function agregarSenas(secuencia) {
+  colaSignos.push(...secuencia);
+  actualizarCola();
+  if (!mostrandoSigno) procesarCola();
+}
+
+// ─── Traducción ───────────────────────────────────────────────────────────────
+async function traducirTexto(texto) {
+  if (!texto.trim()) return;
+  try {
+    const r = await fetch('/api/traducir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto })
+    });
+    const data = await r.json();
+    if (data.ok && data.secuencia.length > 0) {
+      agregarSenas(data.secuencia);
+      const finalEl = document.getElementById('texto-final');
+      finalEl.innerHTML += `<span class="frase-traducida">${texto}</span>`;
+    } else {
+      console.warn('Sin secuencia para:', texto, data);
+    }
+  } catch (e) {
+    console.error('Error traduciendo:', e);
+  }
+}
+
+// ─── Reconocimiento de voz ────────────────────────────────────────────────────
+function setEstado(msg, color) {
+  const el = document.getElementById('mic-label');
+  el.textContent = msg;
+  el.style.color = color || '';
+}
+
+function crearReconocimiento() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+
+  const rec = new SpeechRecognition();
+  rec.lang = 'es-ES';
+  rec.continuous = false;      // Una frase por vez — más estable en Windows
+  rec.interimResults = true;
+  rec.maxAlternatives = 1;
+
+  rec.onstart = () => setEstado('Escuchando... habla ahora', '#06d6a0');
+
+  rec.onspeechstart = () => {
+    setEstado('Detectando voz...', '#f72585');
+    document.getElementById('mic-icon').textContent = '🔴';
+  };
+
+  rec.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        traducirTexto(t);
+        document.getElementById('texto-interim').textContent = '—';
+      } else {
+        interim += t;
+      }
+    }
+    if (interim) document.getElementById('texto-interim').textContent = interim;
+  };
+
+  rec.onerror = (e) => {
+    const msgs = {
+      'no-speech': ['Sin voz — intenta de nuevo', '#ffd166'],
+      'network':   ['Sin internet — el reconocimiento lo requiere', '#ef476f'],
+      'not-allowed': ['Permiso de micrófono denegado', '#ef476f'],
+    };
+    const [msg, color] = msgs[e.error] || [`Error: ${e.error}`, '#ef476f'];
+    setEstado(msg, color);
+    if (e.error === 'not-allowed') {
+      escuchando = false;
+      document.getElementById('btn-mic').textContent = 'Iniciar traducción';
+      document.getElementById('btn-mic').classList.remove('btn-mic-activo');
+    }
+  };
+
+  rec.onend = () => {
+    if (escuchando) {
+      setEstado('Escuchando... habla ahora', '#06d6a0');
+      document.getElementById('mic-icon').textContent = '🎙️';
+      // Reiniciar inmediatamente para la siguiente frase
+      setTimeout(() => {
+        if (escuchando) {
+          recognition = crearReconocimiento();
+          try { recognition.start(); } catch(e) {}
+        }
+      }, 100);
+    } else {
+      setEstado('Presiona para hablar', '');
+      document.getElementById('mic-icon').textContent = '🎙️';
+    }
+  };
+
+  return rec;
+}
+
+function iniciarReconocimiento() {
+  if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) {
+    document.getElementById('alerta-browser').style.display = 'block';
+    return false;
+  }
+  recognition = crearReconocimiento();
+  return true;
+}
+
+function toggleEscucha() {
+  if (!escuchando) {
+    if (!recognition && !iniciarReconocimiento()) return;
+    recognition.start();
+    escuchando = true;
+    document.getElementById('btn-mic').textContent = '⏹️ Detener traducción';
+    document.getElementById('btn-mic').classList.add('btn-mic-activo');
+    document.getElementById('mic-icon').textContent = '🔴';
+    document.getElementById('mic-label').textContent = 'Escuchando...';
+  } else {
+    recognition.stop();
+    escuchando = false;
+    document.getElementById('btn-mic').textContent = 'Iniciar traducción';
+    document.getElementById('btn-mic').classList.remove('btn-mic-activo');
+    document.getElementById('mic-icon').textContent = '🎙️';
+    document.getElementById('mic-label').textContent = 'Presiona para hablar';
+    document.getElementById('texto-interim').textContent = '—';
+  }
+}
+
+function limpiarTodo() {
+  colaSignos = [];
+  mostrandoSigno = false;
+  poseActual = null;
+  actualizarCola();
+  document.getElementById('texto-interim').textContent = '—';
+  document.getElementById('texto-final').innerHTML = '';
+  document.getElementById('seña-actual').textContent = '—';
+  document.getElementById('seña-contador').textContent = '';
+  document.getElementById('avatar-fallback').style.display = 'none';
+  canvas.style.opacity = '1';
+  renderFrame(null);
+}
+
+function traducirManual() {
+  const input = document.getElementById('texto-manual');
+  const texto = input.value.trim();
+  if (!texto) return;
+  traducirTexto(texto);
+  input.value = '';
+}
+
+// ─── Inicio ───────────────────────────────────────────────────────────────────
+renderFrame(null);
+</script>
+{% endblock %}

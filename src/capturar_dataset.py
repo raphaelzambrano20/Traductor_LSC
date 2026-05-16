@@ -21,6 +21,7 @@ from config import DATA_DIR, DATASET_PATH, FRAMES_SECUENCIA
 from detector_manos import DetectorManos
 from database.registro_vocabulario import listar_categorias, obtener_sena, registrar_sena
 from vocabulario_lsc import normalizar_etiqueta
+from camara_stream import CamaraStream
 
 
 MODOS_CAPTURA = {
@@ -40,11 +41,10 @@ def capturar_sena(nombre_sena, cantidad_muestras=100, frames_secuencia=FRAMES_SE
         return
 
     detector = DetectorManos()
-    camara = cv2.VideoCapture(fuente_camara)
-    if fuente_camara == 0:
-        camara.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-        camara.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-        camara.set(cv2.CAP_PROP_FPS, 30)
+    camara = CamaraStream(fuente_camara)
+    camara.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    camara.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    camara.set(cv2.CAP_PROP_FPS, 30)
     historial_landmarks = deque(maxlen=frames_secuencia)
     ultimo_guardado = 0
     grabando_movimiento = False

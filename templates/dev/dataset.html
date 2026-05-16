@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Dataset — Programador{% endblock %}
+
+{% block content %}
+<div class="page-header dev-header">
+  <div>
+    <h1>📊 Estado del Dataset</h1>
+    <p>{{ total }} muestras totales en {{ senas|length }} señas distintas</p>
+  </div>
+  <a href="/dev" class="btn-back">← Panel</a>
+</div>
+
+{% if not senas %}
+<div class="alert alert-warning">
+  ⚠️ No hay muestras capturadas aún. Ve a Capturar Dataset para empezar.
+</div>
+{% else %}
+<div class="dataset-table-box">
+  <table class="dataset-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Seña</th>
+        <th>Muestras</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sena, cantidad in senas %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td><strong>{{ sena }}</strong></td>
+        <td>{{ cantidad }}</td>
+        <td>
+          {% if cantidad >= 50 %}
+            <span class="badge badge-ok">Bueno</span>
+          {% elif cantidad >= 30 %}
+            <span class="badge badge-warn">Regular</span>
+          {% else %}
+            <span class="badge badge-bad">Pocas</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="tips-box" style="margin-top: 1.5rem;">
+  <h3>📌 Referencias</h3>
+  <ul>
+    <li><span class="badge badge-ok">Bueno</span> — 50 o más muestras</li>
+    <li><span class="badge badge-warn">Regular</span> — entre 30 y 49 muestras</li>
+    <li><span class="badge badge-bad">Pocas</span> — menos de 30 muestras, reforzar</li>
+  </ul>
+</div>
+{% endif %}
+{% endblock %}
