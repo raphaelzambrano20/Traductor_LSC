@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Traductor LSC{% endblock %}</title>
+  <title>{% block title %}Traductor LSCNova{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <nav class="navbar">
-    <a href="/" class="nav-logo">🤟 Traductor LSC</a>
+    <a href="/" class="nav-logo">🤟 Traductor LSCNova</a>
     <ul class="nav-links" id="nav-links">
       <li><a href="/" class="{% if request.path == '/' %}active{% endif %}">Inicio</a></li>
       <li><a href="/predecir" class="{% if request.path == '/predecir' %}active{% endif %}">Predecir Seña</a></li>
@@ -48,6 +48,8 @@
 
   <footer class="footer">
     <p>Traductor LSC con IA &mdash; Proyecto académico</p>
+    <br>
+    <p>Creado por Rafael Zambrano & Jhoan Gomez</p>
   </footer>
 
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>

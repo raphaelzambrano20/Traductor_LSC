@@ -296,20 +296,23 @@ def predecir(fuente_camara=0):
         h, w = frame_mostrado.shape[:2]
         overlay = frame_mostrado.copy()
 
-        # Barra superior
-        cv2.rectangle(overlay, (0, 0), (w, 56), (0, 0, 0), -1)
+        # Barra superior (mas alta para el parrafo grande)
+        cv2.rectangle(overlay, (0, 0), (w, 82), (0, 0, 0), -1)
         # Barra inferior
         cv2.rectangle(overlay, (0, h - 40), (w, h), (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.45, frame_mostrado, 0.55, 0, frame_mostrado)
 
-        # Texto prediccion (barra superior izquierda)
+        # Texto prediccion (igual que antes)
         cv2.putText(frame_mostrado, texto_prediccion, (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 120), 2)
 
-        # Parrafo (barra superior derecha)
+        # Separador sutil entre prediccion y parrafo
+        cv2.line(frame_mostrado, (10, 38), (w - 10, 38), (60, 60, 60), 1)
+
+        # Parrafo (mas grande y visible)
         parrafo_texto = "  ".join(parrafo[-8:]) or "-"
-        cv2.putText(frame_mostrado, f"Parrafo: {parrafo_texto}", (10, 52),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
+        cv2.putText(frame_mostrado, parrafo_texto, (10, 72),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 150), 2)
 
         # Barra inferior: calidad y atajos
         color_calidad = (0, 220, 80) if calidad_mano_ok else (0, 0, 255)

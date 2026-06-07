@@ -99,6 +99,18 @@ def api_transcribir():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/animacion/<sena>")
+def api_animacion(sena):
+    """Devuelve la secuencia temporal completa de una seña para el avatar."""
+    import json as _json
+    ruta = PROJECT_ROOT / "data" / "avatar_movimientos" / f"{sena}.json"
+    if not ruta.exists():
+        return jsonify({"ok": False, "error": f"Sin animacion para '{sena}'"}), 404
+    with open(ruta, "r", encoding="utf-8") as fh:
+        datos = _json.load(fh)
+    return jsonify({"ok": True, **datos})
+
+
 @app.route("/api/landmarks/<sena>")
 def api_landmarks(sena):
     data = obtener_landmarks_sena(sena)

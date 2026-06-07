@@ -12,7 +12,7 @@ ETIQUETAS_SIN_SENA = {"sin_sena", "reposo", "ninguna", "no_sena", "transicion"}
 REQUISITOS_SENAS = {
     "saludos": {
         "min_manos": 2,
-        "min_frames_manos": 14,
+        "min_frames_manos": 6,
     },
 }
 LANDMARKS_POR_MANO = 21 * 3

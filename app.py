@@ -24,7 +24,7 @@ from src.vocabulario_lsc import VOCABULARIO_INICIAL_LSC
 
 
 st.set_page_config(
-    page_title="Traductor LSC con IA",
+    page_title="Traductor LSCNova ",
     page_icon="🤟",
     layout="centered",
 )
