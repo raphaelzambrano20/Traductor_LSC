@@ -825,6 +825,85 @@ Para forzar recarga: Ctrl+Shift+R en Chrome.
 
 ---
 
+## Sesion 2026-06-07
+
+### Hecho
+- Se discutio y planeo la mejora completa del avatar: expresiones faciales (gramatica LSC), dedos precisos y colocacion de mano.
+- Se decidio migrar el avatar de **Mixamo FBX a formato VRM** porque VRM tiene morph targets faciales estandar y geometria de dedos garantizada.
+- Se reescribio `static/js/avatar3d.js` completamente para VRM:
+  - Carga via `GLTFLoader` + `VRMLoaderPlugin` de `@pixiv/three-vrm@2.1.2`.
+  - Bones accedidos via `vrm.humanoid.getRawBoneNode(vrmName)` (huesos reales del grafo de escena).
+  - Mapeo `VRM_BONE_MAP`: claves internas → nombres estandar VRM 1.0 humanoid (rightUpperArm, rightIndexProximal, etc.).
+  - IK de brazos preservado: `_armIKDirect` (con codo capturado), `_armIKNorm` (fallback), `_armIKWorld` (base).
+  - Postura de dedos preservada: `_poseFingersNorm` y `_poseFingers` (dataset antiguo).
+  - `VRMUtils.rotateVRM0(vrm)` para que el avatar mire hacia la camara (+Z).
+  - Se agrego `setExpression(name, intensity, durationSecs)`: activa expresion facial con SLERP suave.
+  - Se agrego `clearExpression(durationSecs)`: vuelve a neutral suavemente.
+  - Parpadeo automatico cada 3-6 segundos (`_updateBlink`) para que el avatar se sienta vivo.
+  - En el render loop: NO se llama `vrm.humanoid.update()` (sobreescribiria los huesos), solo `vrm.expressionManager.update(dt)`.
+- Se actualizo `templates/comunicar.html`:
+  - Importmap ampliado con `@pixiv/three-vrm`.
+  - Importa `setExpression` y `clearExpression` de `avatar3d.js`.
+  - `EXPRESION_SENA`: diccionario de expresiones lexicas por seña (bien→happy, mal→sad, hola→happy, ayuda→surprised, etc.).
+  - `detectarExpresionGramatical(texto)`: analiza puntuacion: `?`→surprised (cejas arriba), `!`→happy, `no/nunca`→angry (ceno).
+  - Expresion gramatical persiste durante toda la frase; expresion lexica tiene prioridad sobre la gramatical.
+  - `clearExpression` solo se llama cuando se vacia la cola (no entre señas de la misma frase).
+  - Version cache bumpeada a `?v=20260607a`.
+- El usuario descargo un avatar de VRoid Hub/Studio exportado como `.vrm`.
+  - Archivo colocado en `static/models/Avatar_LSC.vrm`.
+  - Ruta actualizada en `avatar3d.js`.
+
+### Decisiones
+- **Formato definitivo del avatar: VRM** (descarta Mixamo FBX para siempre).
+  - VRM tiene blend shapes faciales estandar (happy, sad, angry, surprised, relaxed, blink, aa/ih/ou/ee/oh).
+  - VRM tiene rig de dedos completo garantizado (a diferencia del Y Bot que no tenia geometria de dedos).
+  - `@pixiv/three-vrm@2` via CDN jsDelivr, compatible con Three.js r160.
+- Las expresiones faciales se manejan por codigo (NO por captura con camara), porque:
+  - Las expresiones gramaticales dependen de la oración, no de la seña.
+  - Las expresiones lexicas son un mapeo fijo y predecible.
+  - Capturar face mesh durante la seña es complejo y poco reproducible.
+- `vrm.humanoid.update()` NO se llama en el render loop para que no sobreescriba las rotaciones de huesos calculadas por el IK.
+
+### Pendiente INMEDIATO
+1. **Probar el avatar en Chrome**: iniciar servidor, abrir `/comunicar`, verificar en DevTools (F12 → Console):
+   - Mensaje `[avatar3d] huesos: X / 44` (deberian ser ~44 huesos).
+   - Sin errores en rojo.
+2. **Verificar orientacion**: si el avatar aparece de espaldas, cambiar `VRMUtils.rotateVRM0(vrm)` por `vrm.scene.rotation.y = 0` en `avatar3d.js` linea ~155.
+3. **Probar señas**: escribir "bien" en el campo manual → verificar que el brazo se mueve y la expresion happy aparece.
+4. **Recapturar señas** con `capturar_avatar.py`: hola, bien, yo, tu, ayuda, sordo, mal (los JSONs anteriores fueron borrados en sesion 2026-05-28).
+
+### Pendiente general
+- Reforzar muestras `tu`, `yo`, `sordo` y reentrenar modelo de reconocimiento (prioridad alta desde semanas).
+- Imagenes seccion Aprender LSC en `static/images/abecedario/`, `numeros/`, `saludos/`.
+- Fase 2: Migrar BD a MariaDB con SQLAlchemy.
+- Fases 3-5: servidor central, auto-update, PyInstaller.
+
+### Expresiones implementadas (referencia rapida)
+| Seña / Situacion | Expresion | Intensidad |
+|---|---|---|
+| `bien` | happy | 70% |
+| `hola`, `saludos` | happy | 45% |
+| `mal` | sad | 60% |
+| `ayuda` | surprised | 50% |
+| `sordo`, `yo`, `tu` | relaxed | 20-30% |
+| Frase con `?` o `¿` | surprised | 55% |
+| Frase con `!` o `¡` | happy | 65% |
+| Frase con "no/nunca/jamas" | angry | 30% |
+
+### Archivos clave modificados
+| Archivo | Cambio |
+|---------|--------|
+| `static/js/avatar3d.js` | Reescrito para VRM: carga GLTFLoader+VRMLoaderPlugin, expresiones faciales, parpadeo, misma IK/dedos |
+| `templates/comunicar.html` | Importmap VRM, setExpression/clearExpression, EXPRESION_SENA, deteccion gramatical |
+| `static/models/Avatar_LSC.vrm` | Nuevo modelo VRM (reemplaza Avatar.fbx) |
+
+### Comando para iniciar
+```powershell
+& "c:\Users\LEANDRO\traductor_lsc_ia - copia\venv\Scripts\python.exe" "c:\Users\LEANDRO\traductor_lsc_ia - copia\run_flask.py"
+```
+
+---
+
 ## Plantilla para actualizar
 
 ```md

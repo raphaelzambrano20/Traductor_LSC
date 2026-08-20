@@ -1,0 +1,563 @@
+{% extends "base.html" %}
+{% block title %}Capturar Seña para Avatar — LSCNova{% endblock %}
+
+{% block content %}
+<div class="page-header dev-header">
+  <div>
+    <h1>📸 Capturar Seña para Avatar</h1>
+    <p>Encuádrate de la cintura para arriba. El avatar refleja tus movimientos en vivo. Graba cuando la seña se vea correcta.</p>
+  </div>
+  <a href="/dev" class="btn-back">← Panel</a>
+</div>
+
+<div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
+
+  <!-- ── Panel izquierdo: video + controles ── -->
+  <div style="flex:1; min-width:320px; max-width:560px;">
+
+    <!-- Video espejo con overlay de esqueleto -->
+    <div id="video-container"
+         style="position:relative; background:#111; border-radius:8px; overflow:hidden;
+                margin-bottom:1rem; aspect-ratio:4/3;">
+      <video id="cap-video"
+             style="width:100%; height:100%; transform:scaleX(-1); display:block; object-fit:cover;"
+             autoplay muted playsinline></video>
+
+      <!-- Canvas overlay para esqueleto MediaPipe (mismo espejo que el video) -->
+      <canvas id="skeleton-overlay"
+              style="position:absolute; inset:0; width:100%; height:100%;
+                     transform:scaleX(-1); pointer-events:none;"></canvas>
+
+      <!-- Badges de deteccion (top-left) -->
+      <div style="position:absolute; top:8px; left:8px; display:flex; gap:5px; flex-wrap:wrap;">
+        <span id="badge-cuerpo"
+              style="background:rgba(0,0,0,0.60); color:#999; padding:3px 9px;
+                     border-radius:12px; font-size:0.72rem; border:1px solid #555;
+                     transition:color .3s, border-color .3s;">
+          Sin cuerpo
+        </span>
+        <span id="badge-der"
+              style="background:rgba(0,0,0,0.60); color:#999; padding:3px 9px;
+                     border-radius:12px; font-size:0.72rem; border:1px solid #555;
+                     transition:color .3s, border-color .3s;">
+          Mano Der
+        </span>
+        <span id="badge-izq"
+              style="background:rgba(0,0,0,0.60); color:#999; padding:3px 9px;
+                     border-radius:12px; font-size:0.72rem; border:1px solid #555;
+                     transition:color .3s, border-color .3s;">
+          Mano Izq
+        </span>
+      </div>
+
+      <!-- Estado en barra inferior -->
+      <div id="cap-estado"
+           style="position:absolute; bottom:0; left:0; right:0;
+                  background:rgba(0,0,0,0.65); color:#fff; padding:6px 10px; font-size:0.82rem;">
+        Iniciando camara...
+      </div>
+    </div>
+
+    <!-- Formulario de metadatos -->
+    <div style="background:#f5f7fa; border-radius:8px; padding:1rem;">
+
+      <div style="margin-bottom:0.75rem;">
+        <label style="font-size:0.85rem; font-weight:600;">Nombre de la seña</label>
+        <input id="inp-sena" type="text" placeholder="ej: hola, bien, yo..."
+               style="display:block; width:100%; box-sizing:border-box; padding:0.45rem 0.6rem;
+                      border:1px solid #ccc; border-radius:5px; font-size:0.95rem; margin-top:4px;">
+      </div>
+
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+        <div style="flex:1; min-width:110px;">
+          <label style="font-size:0.82rem; font-weight:600;">Categoria</label>
+          <select id="sel-cat"
+                  style="display:block; width:100%; padding:0.4rem; border:1px solid #ccc;
+                         border-radius:5px; margin-top:4px; font-size:0.88rem;">
+            <option>cortesia</option><option>emociones</option><option>personas</option>
+            <option>familia</option><option>numeros</option><option>abecedario</option>
+            <option>frases</option><option>otra</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:110px;">
+          <label style="font-size:0.82rem; font-weight:600;">Duracion</label>
+          <select id="sel-dur"
+                  style="display:block; width:100%; padding:0.4rem; border:1px solid #ccc;
+                         border-radius:5px; margin-top:4px; font-size:0.88rem;">
+            <option value="15">Corta (15 frames)</option>
+            <option value="25" selected>Media (25 frames)</option>
+            <option value="40">Larga (40 frames)</option>
+          </select>
+        </div>
+        <div style="flex:1; min-width:90px;">
+          <label style="font-size:0.82rem; font-weight:600;">Manos</label>
+          <select id="sel-manos"
+                  style="display:block; width:100%; padding:0.4rem; border:1px solid #ccc;
+                         border-radius:5px; margin-top:4px; font-size:0.88rem;">
+            <option value="1">1 mano</option>
+            <option value="2">2 manos</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Boton principal -->
+      <button id="btn-grabar" onclick="iniciarGrabacion()"
+              style="width:100%; padding:0.65rem; background:#1565C0; color:#fff;
+                     border:none; border-radius:6px; font-size:1rem; cursor:pointer; font-weight:600;">
+        ⏺ Grabar seña
+      </button>
+
+      <!-- Barra de progreso (grabando) -->
+      <div id="panel-progreso" style="display:none; margin-top:0.75rem;">
+        <div style="background:#ddd; border-radius:4px; height:10px; overflow:hidden;">
+          <div id="barra-prog"
+               style="height:100%; width:0%; background:#F44336; border-radius:4px; transition:width 0.08s;"></div>
+        </div>
+        <div id="lbl-frames" style="font-size:0.78rem; color:#666; margin-top:4px; text-align:center;">0 / 0 frames</div>
+      </div>
+
+      <!-- Botones de revision (tras grabar) -->
+      <div id="panel-revision" style="display:none; gap:0.5rem; margin-top:0.75rem;">
+        <button onclick="guardarSena()"
+                style="flex:1; padding:0.6rem; background:#2E7D32; color:#fff;
+                       border:none; border-radius:6px; font-size:0.95rem; cursor:pointer;
+                       font-weight:600; display:block; width:100%; margin-bottom:0.4rem;">
+          💾 Guardar seña
+        </button>
+        <button onclick="descartarYRegrabar()"
+                style="flex:1; padding:0.6rem; background:#BF360C; color:#fff;
+                       border:none; border-radius:6px; font-size:0.95rem; cursor:pointer;
+                       font-weight:600; display:block; width:100%;">
+          🔄 Descartar y regravar
+        </button>
+      </div>
+
+      <div id="msg-ok" style="display:none; margin-top:0.75rem; padding:0.6rem 0.75rem;
+                               background:#E8F5E9; color:#1B5E20; border-radius:6px; font-size:0.88rem;"></div>
+    </div>
+  </div>
+
+  <!-- ── Panel derecho: avatar 3D ── -->
+  <div style="flex:1; min-width:320px; display:flex; flex-direction:column; align-items:center;">
+    <div id="lbl-modo"
+         style="font-size:0.85rem; color:#555; margin-bottom:0.5rem; font-weight:600;">
+      En vivo — haz tu seña
+    </div>
+    <div style="position:relative;">
+      <canvas id="avatar-canvas" width="420" height="520"></canvas>
+      <div id="avatar-loading"
+           style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+                  background:rgba(220,232,240,0.9); font-size:0.9rem; color:#555; border-radius:8px;">
+        Cargando avatar...
+      </div>
+    </div>
+    <p style="font-size:0.72rem; color:#aaa; margin-top:0.5rem; text-align:center; max-width:400px;">
+      Asegurate de que los tres badges muestren verde antes de grabar.<br>
+      Verde = cuerpo, rojo = mano derecha, amarillo = mano izquierda.
+    </p>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- MediaPipe Holistic (CDN legacy) -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/holistic.js"
+        crossorigin="anonymous"></script>
+
+<!-- Kalidokit UMD — expone window.Kalidokit = { Face, Pose, Hand } -->
+<script src="https://cdn.jsdelivr.net/npm/kalidokit@1.1.0/dist/kalidokit.umd.js"
+        crossorigin="anonymous"></script>
+
+<!-- Importmap identico al de comunicar.html -->
+<script type="importmap">
+{
+  "imports": {
+    "three":            "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/":    "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.1.2/lib/three-vrm.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { initAvatar, applyLiveRotations, snapshotRotations,
+         startAnimation, stopAnimation }
+  from '/static/js/avatar3d.js?v=20260630a';
+
+// ─── Estado ───────────────────────────────────────────────────────────────────
+let estado = 'idle';          // 'idle' | 'grabando' | 'revisando'
+let framesGrabados = [];
+let avatarListo = false;
+let reproLoop   = false;
+
+// ─── Mapas Kalidokit → nombre de hueso VRM humanoid ──────────────────────────
+// Pose.solve devuelve { BoneName: { rotation: {x,y,z} } } — con .rotation anidado.
+// Hand.solve devuelve { BoneName: {x,y,z} }              — rotacion DIRECTA.
+
+const POSE_MAP = {
+  RightUpperArm: 'rightUpperArm',
+  RightLowerArm: 'rightLowerArm',
+  LeftUpperArm:  'leftUpperArm',
+  LeftLowerArm:  'leftLowerArm',
+};
+
+const HAND_MAP_R = {
+  RightWrist:              'rightHand',
+  RightThumbProximal:      'rightThumbMetacarpal',
+  RightThumbIntermediate:  'rightThumbProximal',
+  RightThumbDistal:        'rightThumbDistal',
+  RightIndexProximal:      'rightIndexProximal',
+  RightIndexIntermediate:  'rightIndexIntermediate',
+  RightIndexDistal:        'rightIndexDistal',
+  RightMiddleProximal:     'rightMiddleProximal',
+  RightMiddleIntermediate: 'rightMiddleIntermediate',
+  RightMiddleDistal:       'rightMiddleDistal',
+  RightRingProximal:       'rightRingProximal',
+  RightRingIntermediate:   'rightRingIntermediate',
+  RightRingDistal:         'rightRingDistal',
+  RightLittleProximal:     'rightLittleProximal',
+  RightLittleIntermediate: 'rightLittleIntermediate',
+  RightLittleDistal:       'rightLittleDistal',
+};
+
+const HAND_MAP_L = {
+  LeftWrist:              'leftHand',
+  LeftThumbProximal:      'leftThumbMetacarpal',
+  LeftThumbIntermediate:  'leftThumbProximal',
+  LeftThumbDistal:        'leftThumbDistal',
+  LeftIndexProximal:      'leftIndexProximal',
+  LeftIndexIntermediate:  'leftIndexIntermediate',
+  LeftIndexDistal:        'leftIndexDistal',
+  LeftMiddleProximal:     'leftMiddleProximal',
+  LeftMiddleIntermediate: 'leftMiddleIntermediate',
+  LeftMiddleDistal:       'leftMiddleDistal',
+  LeftRingProximal:       'leftRingProximal',
+  LeftRingIntermediate:   'leftRingIntermediate',
+  LeftRingDistal:         'leftRingDistal',
+  LeftLittleProximal:     'leftLittleProximal',
+  LeftLittleIntermediate: 'leftLittleIntermediate',
+  LeftLittleDistal:       'leftLittleDistal',
+};
+
+// Convierte Euler {x,y,z} de Kalidokit (radianes) a quaternion {x,y,z,w}.
+function eulerToQuat(rot, dampener = 1) {
+  const q = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(rot.x * dampener, rot.y * dampener, rot.z * dampener, 'XYZ')
+  );
+  return { x: q.x, y: q.y, z: q.z, w: q.w };
+}
+
+// Vuelca un rig de Kalidokit al mapa de huesos para applyLiveRotations.
+// Maneja ambos formatos: Pose.solve ({ rotation: {...} }) y Hand.solve ({ x,y,z } directo).
+function volcarRig(kaliMap, rig, bonesOut, dampener = 1) {
+  if (!rig) return;
+  for (const [kaliKey, vrmName] of Object.entries(kaliMap)) {
+    const entry = rig[kaliKey];
+    if (!entry) continue;
+    const rot = (entry.rotation != null) ? entry.rotation : entry;
+    if (rot.x == null) continue;
+    bonesOut[vrmName] = eulerToQuat(rot, dampener);
+  }
+}
+
+// ─── Overlay: dibuja esqueleto de MediaPipe sobre el video ───────────────────
+// Conexiones upper-body de Pose (indices del mapa de 33 landmarks de MediaPipe)
+const POSE_CONEXIONES = [
+  [11, 12],           // hombros
+  [11, 13], [13, 15], // brazo izquierdo
+  [12, 14], [14, 16], // brazo derecho
+  [11, 23], [12, 24], [23, 24], // torso
+];
+const POSE_PUNTOS = [11, 12, 13, 14, 15, 16, 23, 24];
+
+// Conexiones de cada mano (21 landmarks MediaPipe Hands)
+const MANO_CONEXIONES = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [5,9],[9,10],[10,11],[11,12],
+  [9,13],[13,14],[14,15],[15,16],
+  [13,17],[17,18],[18,19],[19,20],
+  [0,17],
+];
+
+function dibujarEsqueleto(results) {
+  const overlay = document.getElementById('skeleton-overlay');
+  if (!overlay) return;
+
+  const W = videoEl.videoWidth  || 640;
+  const H = videoEl.videoHeight || 480;
+  if (overlay.width !== W || overlay.height !== H) {
+    overlay.width  = W;
+    overlay.height = H;
+  }
+
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // Convierte landmark normalizado a pixel
+  const pt = (lms, i) => {
+    const lm = lms[i];
+    return lm ? { x: lm.x * W, y: lm.y * H } : null;
+  };
+
+  const linea = (a, b, color, ancho = 2) => {
+    if (!a || !b) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = ancho;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  };
+
+  const punto = (p, color, r = 4) => {
+    if (!p) return;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  // Cuerpo superior (pose)
+  if (results.poseLandmarks) {
+    const pLm = results.poseLandmarks;
+    const COL = 'rgba(0,255,136,0.85)';
+    for (const [a, b] of POSE_CONEXIONES) linea(pt(pLm, a), pt(pLm, b), COL, 2.5);
+    for (const i of POSE_PUNTOS)          punto(pt(pLm, i), COL, 5);
+  }
+
+  // Manos
+  const dibujarMano = (lms, colorLinea, colorPunto) => {
+    if (!lms) return;
+    for (const [a, b] of MANO_CONEXIONES) linea(pt(lms, a), pt(lms, b), colorLinea, 2);
+    for (let i = 0; i < 21; i++)
+      punto(pt(lms, i), i === 0 ? '#ffffff' : colorPunto, i === 0 ? 6 : 3);
+  };
+
+  // rightHandLandmarks = mano derecha del firmante
+  dibujarMano(results.rightHandLandmarks, 'rgba(255,90,90,0.9)',  'rgba(255,90,90,1)');
+  dibujarMano(results.leftHandLandmarks,  'rgba(255,210,40,0.9)', 'rgba(255,210,40,1)');
+}
+
+// Actualiza badges segun que esta detectando MediaPipe
+function actualizarBadges(results) {
+  const set = (id, ok, textoOk, textoNo, color) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent       = ok ? textoOk : textoNo;
+    el.style.color       = ok ? color   : '#999';
+    el.style.borderColor = ok ? color   : '#555';
+  };
+  set('badge-cuerpo', !!results.poseLandmarks,
+      'Cuerpo ✓', 'Sin cuerpo', '#00ff88');
+  set('badge-der', !!results.rightHandLandmarks,
+      'Mano Der ✓', 'Mano Der', '#ff5a5a');
+  set('badge-izq', !!results.leftHandLandmarks,
+      'Mano Izq ✓', 'Mano Izq', '#ffd228');
+}
+
+// ─── Callback principal de MediaPipe Holistic ─────────────────────────────────
+function onResults(results) {
+  // Dibujar esqueleto y badges siempre (incluso durante revision)
+  dibujarEsqueleto(results);
+  actualizarBadges(results);
+
+  if (!avatarListo || estado === 'revisando') return;
+
+  const { Pose, Hand } = window.Kalidokit || {};
+  if (!Pose || !Hand) return;
+
+  const bonesMap = {};
+
+  // Pose (brazos)
+  const worldLm = results.poseWorldLandmarks || results.ea;
+  if (worldLm && results.poseLandmarks) {
+    const poseRig = Pose.solve(worldLm, results.poseLandmarks, {
+      runtime:         'mediapipe',
+      video:           videoEl,
+      imageSize:       { width: videoEl.videoWidth || 640, height: videoEl.videoHeight || 480 },
+      smoothLandmarks: true,
+    });
+    volcarRig(POSE_MAP, poseRig, bonesMap, 0.9);
+  }
+
+  // Mano derecha del firmante
+  if (results.rightHandLandmarks) {
+    const handRig = Hand.solve(results.rightHandLandmarks, 'Right');
+    volcarRig(HAND_MAP_R, handRig, bonesMap, 1.0);
+  }
+
+  // Mano izquierda del firmante
+  if (results.leftHandLandmarks) {
+    const handRig = Hand.solve(results.leftHandLandmarks, 'Left');
+    volcarRig(HAND_MAP_L, handRig, bonesMap, 1.0);
+  }
+
+  if (Object.keys(bonesMap).length === 0) return;
+
+  applyLiveRotations(bonesMap);
+
+  // Captura de frame si estamos grabando
+  if (estado === 'grabando') {
+    const nFrames = parseInt(document.getElementById('sel-dur').value);
+    framesGrabados.push({ f: framesGrabados.length, bones: snapshotRotations() });
+    actualizarProgreso(framesGrabados.length, nFrames);
+    if (framesGrabados.length >= nFrames) terminarGrabacion();
+  }
+}
+
+// ─── Inicializacion del avatar ────────────────────────────────────────────────
+initAvatar('avatar-canvas', () => {
+  avatarListo = true;
+  setEstado('Avatar listo — haz tu seña frente a la camara');
+});
+
+// ─── Camara + MediaPipe ───────────────────────────────────────────────────────
+const videoEl = document.getElementById('cap-video');
+
+const holisticInst = new Holistic({
+  locateFile: file =>
+    `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1675471629/${file}`
+});
+holisticInst.setOptions({
+  modelComplexity:        1,
+  smoothLandmarks:        true,
+  enableSegmentation:     false,
+  refineFaceLandmarks:    false,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence:  0.5,
+});
+holisticInst.onResults(onResults);
+
+// Resolución ideal 960x720 para encuadrar de cintura para arriba.
+// El navegador entregará la resolución más alta disponible hasta ese limite.
+navigator.mediaDevices
+  .getUserMedia({
+    video: {
+      width:      { ideal: 960 },
+      height:     { ideal: 720 },
+      facingMode: 'user',
+    },
+    audio: false,
+  })
+  .then(stream => {
+    videoEl.srcObject = stream;
+    videoEl.onloadedmetadata = () => {
+      videoEl.play();
+      setEstado('Camara lista — cargando modelos MediaPipe...');
+      (async function loop() {
+        if (videoEl.readyState >= 2) {
+          try { await holisticInst.send({ image: videoEl }); }
+          catch (_) { /* primera carga puede fallar, continuar */ }
+        }
+        requestAnimationFrame(loop);
+      })();
+    };
+  })
+  .catch(err => setEstado(`Sin camara: ${err.message}. Habilita el permiso y recarga.`));
+
+// ─── Acciones del usuario ─────────────────────────────────────────────────────
+
+window.iniciarGrabacion = function () {
+  const sena = document.getElementById('inp-sena').value.trim().toLowerCase();
+  if (!sena) { alert('Escribe el nombre de la seña antes de grabar.'); return; }
+  if (!avatarListo) { alert('Espera a que el avatar cargue.'); return; }
+
+  const nFrames = parseInt(document.getElementById('sel-dur').value);
+  framesGrabados = [];
+  estado = 'grabando';
+  document.getElementById('panel-progreso').style.display = 'block';
+  document.getElementById('panel-revision').style.display = 'none';
+  document.getElementById('msg-ok').style.display         = 'none';
+  document.getElementById('btn-grabar').disabled          = true;
+  document.getElementById('lbl-frames').textContent       = `0 / ${nFrames} frames`;
+  document.getElementById('barra-prog').style.width       = '0%';
+  document.getElementById('lbl-modo').textContent         = 'Grabando — haz la seña ahora';
+  setEstado('Grabando...');
+};
+
+window.guardarSena = async function () {
+  stopAnimation();
+  reproLoop = false;
+
+  const sena = document.getElementById('inp-sena').value.trim().toLowerCase();
+  const payload = {
+    sena,
+    categoria:    document.getElementById('sel-cat').value,
+    manos:        document.getElementById('sel-manos').value,
+    duracion:     { 15: 'corta', 25: 'media', 40: 'larga' }[
+                    parseInt(document.getElementById('sel-dur').value)] || 'media',
+    formato:      'rotaciones_v2',
+    version:      2,
+    fps:          30,
+    total_frames: framesGrabados.length,
+    frames:       framesGrabados,
+  };
+
+  try {
+    const r    = await fetch(`/api/animacion/${encodeURIComponent(sena)}`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await r.json();
+    if (data.ok) {
+      const el = document.getElementById('msg-ok');
+      el.textContent   = `"${sena}" guardada correctamente (${data.frames} frames).`;
+      el.style.display = 'block';
+      document.getElementById('panel-revision').style.display = 'none';
+      document.getElementById('panel-progreso').style.display = 'none';
+      document.getElementById('btn-grabar').disabled          = false;
+      document.getElementById('lbl-modo').textContent         = 'En vivo — haz tu seña';
+      estado = 'idle';
+      setEstado('Guardado. Lista para la siguiente seña.');
+    } else {
+      alert('Error al guardar: ' + (data.error || 'desconocido'));
+    }
+  } catch (e) {
+    alert('Error de red: ' + e.message);
+  }
+};
+
+window.descartarYRegrabar = function () {
+  stopAnimation();
+  reproLoop = false;
+  framesGrabados = [];
+  estado = 'idle';
+  document.getElementById('panel-revision').style.display = 'none';
+  document.getElementById('panel-progreso').style.display = 'none';
+  document.getElementById('btn-grabar').disabled          = false;
+  document.getElementById('lbl-modo').textContent         = 'En vivo — haz tu seña';
+  setEstado('Descartado. Listo para intentar de nuevo.');
+};
+
+// ─── Helpers internos ─────────────────────────────────────────────────────────
+
+function terminarGrabacion() {
+  estado = 'revisando';
+  reproLoop = true;
+  document.getElementById('panel-revision').style.display = 'block';
+  document.getElementById('lbl-modo').textContent = 'Revisando — la seña se ve bien?';
+  setEstado(`${framesGrabados.length} frames capturados. Mira como quedo.`);
+  const loopReproduccion = () => {
+    if (!reproLoop) return;
+    startAnimation(framesGrabados, () => {
+      if (reproLoop) setTimeout(loopReproduccion, 400);
+    });
+  };
+  loopReproduccion();
+}
+
+function actualizarProgreso(actual, total) {
+  document.getElementById('barra-prog').style.width = `${(actual / total) * 100}%`;
+  document.getElementById('lbl-frames').textContent = `${actual} / ${total} frames`;
+}
+
+function setEstado(txt) {
+  const el = document.getElementById('cap-estado');
+  if (el) el.textContent = txt;
+}
+</script>
+{% endblock %}
