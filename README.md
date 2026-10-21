@@ -10,13 +10,13 @@ lenguas de senas, porque cada lengua tiene vocabulario, gramatica y gestos propi
 ## Ejecutar la app
 
 ```powershell
-venv\Scripts\streamlit.exe run app.py
+venv\Scripts\python.exe run_flask.py
 ```
 
-Luego abra la URL que muestre Streamlit, normalmente:
+El navegador se abre automaticamente en:
 
 ```text
-http://localhost:8501
+http://127.0.0.1:5000
 ```
 
 ## Flujo de trabajo
