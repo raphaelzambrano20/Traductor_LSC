@@ -270,7 +270,7 @@ SOFTWARE INSTALADO EN EL PC DEL AULA (.exe via PyInstaller)
 - Se agrego campo de texto manual en `comunicar.html` como fallback cuando el microfono no funciona.
 - Se mejoro HUD en `predecir_sena.py`: barras semi-transparentes arriba/abajo, texto prediccion verde, calidad rojo puro cuando mala, atajo C/V/Q visibles.
 - Se agrego `cv2.WINDOW_NORMAL` en `capturar_dataset.py` y `predecir_sena.py` para ventana redimensionable.
-- Se agrego autenticacion de modo desarrollador con Flask session: password `lsc2026`, secret key `lsc_dev_2026`. Las rutas `/dev/*` estan ocultas al usuario final.
+- Se agrego autenticacion de modo desarrollador con Flask session: la clave y la llave secreta se leen del archivo `.env` (ver `.env.example`). Las rutas `/dev/*` estan ocultas al usuario final.
 - Se agregaron rutas API: `POST /api/traducir`, `POST /api/transcribir`, `GET /api/landmarks/<sena>`, `GET /api/landmarks`, `POST /api/dev/login`, `POST /api/dev/logout`.
 - Se instalo Flask en el entorno virtual correcto (`traductor_lsc_ia - copia\venv`).
 

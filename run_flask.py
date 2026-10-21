@@ -1,9 +1,14 @@
+import os
+import secrets
 import sys
 import webbrowser
 from pathlib import Path
 from threading import Timer
 
+from dotenv import load_dotenv
+
 PROJECT_ROOT = Path(__file__).resolve().parent
+load_dotenv(PROJECT_ROOT / ".env")
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 if str(PROJECT_ROOT / "src") not in sys.path:
@@ -19,8 +24,11 @@ import subprocess
 import csv
 
 app = Flask(__name__)
-app.secret_key = "lsc_dev_2026"
-DEV_PASSWORD = "lsc2026"
+# Las credenciales se leen del archivo .env (ver .env.example); nunca van en el codigo.
+# Sin LSC_SECRET_KEY se genera una llave temporal (las sesiones se pierden al reiniciar).
+# Sin LSC_DEV_PASSWORD el modo desarrollador queda deshabilitado.
+app.secret_key = os.environ.get("LSC_SECRET_KEY") or secrets.token_hex(32)
+DEV_PASSWORD = os.environ.get("LSC_DEV_PASSWORD", "")
 seed_database()
 
 
@@ -154,8 +162,10 @@ def acerca():
 
 @app.route("/api/dev/login", methods=["POST"])
 def dev_login():
+    if not DEV_PASSWORD:
+        return jsonify({"ok": False, "error": "Modo desarrollador no configurado (falta LSC_DEV_PASSWORD en .env)"}), 403
     password = request.json.get("password", "")
-    if password == DEV_PASSWORD:
+    if secrets.compare_digest(str(password), DEV_PASSWORD):
         session["dev"] = True
         return jsonify({"ok": True})
     return jsonify({"ok": False, "error": "Contraseña incorrecta"}), 401

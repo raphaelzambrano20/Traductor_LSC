@@ -7,16 +7,30 @@ tiempo real usando MediaPipe Holistic, OpenCV y Scikit-learn.
 El proyecto esta pensado solo para LSC. No se recomienda entrenarlo con ASL u otras
 lenguas de senas, porque cada lengua tiene vocabulario, gramatica y gestos propios.
 
+## Configuracion inicial (una sola vez)
+
+Las credenciales no estan en el codigo. Copie `.env.example` como `.env` y complete los
+valores (el archivo `.env` no se sube a git):
+
+```powershell
+copy .env.example .env
+venv\Scripts\pip.exe install -r requirements.txt
+```
+
+- `LSC_DEV_PASSWORD`: contrasena del modo desarrollador (`/dev`). Si queda vacia, ese modo
+  queda deshabilitado.
+- `LSC_SECRET_KEY`: llave de sesiones de Flask. Puede ser distinta en cada computador.
+
 ## Ejecutar la app
 
 ```powershell
-venv\Scripts\streamlit.exe run app.py
+venv\Scripts\python.exe run_flask.py
 ```
 
-Luego abra la URL que muestre Streamlit, normalmente:
+El navegador se abre automaticamente en:
 
 ```text
-http://localhost:8501
+http://127.0.0.1:5000
 ```
 
 ## Flujo de trabajo

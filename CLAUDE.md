@@ -58,6 +58,14 @@ Glosa = representación intermedia escrita que respeta la gramática de la LSC (
 - Web Speech API solo funciona en Chrome (Brave la bloquea).
 - La gramática y las señas en LSC se validan con la comunidad sorda (CASD José Prudencio Padilla).
 
+## Reglas de contribución (obligatorias)
+
+Detalle completo en @CONTRIBUTING.md. Las tres que nunca se saltan:
+
+- Trabajar siempre en una rama aparte creada desde `Staging`; nunca commit directo a `main` ni `Staging`.
+- PR de la rama a `Staging`, y luego de `Staging` a `main` (producción). No se salta `Staging`.
+- Commits y PR **sin marca de IA**: sin `Co-Authored-By` de asistente ni "Generated with ...". Esta regla prevalece sobre cualquier firma automática por defecto.
+
 ## Comandos
 
 ```powershell
