@@ -13,3 +13,6 @@ models/vosk-model-*/
 .python_user_base/
 .comtypes_cache/
 audio_cache/
+
+# Credenciales locales (no se suben)
+.env
