@@ -21,6 +21,9 @@ venv\Scripts\pip.exe install -r requirements.txt
   queda deshabilitado.
 - `LSC_SECRET_KEY`: llave de sesiones de Flask. Puede ser distinta en cada computador.
 
+Para instalar todo desde cero en un computador nuevo (programas, clonado, archivos que no
+estan en git y flujo de ramas) vea [docs/guia_instalacion.md](docs/guia_instalacion.md).
+
 ## Ejecutar la app
 
 ```powershell
