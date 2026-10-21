@@ -99,7 +99,7 @@ def api_transcribir():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/animacion/<sena>")
+@app.route("/api/animacion/<sena>", methods=["GET"])
 def api_animacion(sena):
     """Devuelve la secuencia temporal completa de una seña para el avatar."""
     import json as _json
@@ -109,6 +109,24 @@ def api_animacion(sena):
     with open(ruta, "r", encoding="utf-8") as fh:
         datos = _json.load(fh)
     return jsonify({"ok": True, **datos})
+
+
+@app.route("/api/animacion/<sena>", methods=["POST"])
+def api_guardar_animacion(sena):
+    """Guarda una animación de seña en formato rotaciones_v2 desde el browser."""
+    import json as _json
+    if not session.get("dev"):
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+    datos = request.get_json(silent=True)
+    if not datos or "frames" not in datos:
+        return jsonify({"ok": False, "error": "Payload inválido (falta 'frames')"}), 400
+    ruta = PROJECT_ROOT / "data" / "avatar_movimientos" / f"{sena}.json"
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    if ruta.exists():
+        ruta.rename(ruta.with_name(f"{sena}.bak.json"))
+    with open(ruta, "w", encoding="utf-8") as fh:
+        _json.dump(datos, fh, ensure_ascii=False, separators=(",", ":"))
+    return jsonify({"ok": True, "frames": len(datos["frames"])})
 
 
 @app.route("/api/landmarks/<sena>")
@@ -163,6 +181,13 @@ def dev_capturar():
     if not session.get("dev"):
         return render_template("dev/login_requerido.html")
     return render_template("dev/capturar.html")
+
+
+@app.route("/dev/capturar-avatar")
+def dev_capturar_avatar():
+    if not session.get("dev"):
+        return render_template("dev/login_requerido.html")
+    return render_template("dev/capturar_avatar.html")
 
 
 @app.route("/dev/capturar/lanzar", methods=["POST"])

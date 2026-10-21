@@ -84,13 +84,15 @@
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    "three":           "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/":   "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "@pixiv/three-vrm":"https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@2.1.2/lib/three-vrm.module.js"
   }
 }
 </script>
 <script type="module">
-import { initAvatar, clearPose, startAnimation, stopAnimation } from '/static/js/avatar3d.js?v=20260528e';
+import { initAvatar, clearPose, startAnimation, stopAnimation,
+         setExpression, clearExpression } from '/static/js/avatar3d.js?v=20260608a';
 
 // ─── Estado global ────────────────────────────────────────────────────────────
 let recognition = null;
@@ -98,6 +100,35 @@ let escuchando = false;
 let colaSignos = [];
 let mostrandoSigno = false;
 let avatarListo = false;
+
+// ─── Sistema de expresiones faciales ─────────────────────────────────────────
+
+// Expresión léxica: propia de la seña (independiente del contexto)
+const EXPRESION_SENA = {
+  'bien':     { expr: 'happy',     intensidad: 0.25 },
+  'hola':     { expr: 'happy',     intensidad: 0.45 },
+  'saludos':  { expr: 'happy',     intensidad: 0.45 },
+  'mal':      { expr: 'sad',       intensidad: 0.60 },
+  'ayuda':    { expr: 'surprised', intensidad: 0.50 },
+  'sordo':    { expr: 'relaxed',   intensidad: 0.30 },
+  'yo':       { expr: 'relaxed',   intensidad: 0.20 },
+  'tu':       { expr: 'relaxed',   intensidad: 0.20 },
+};
+
+// Expresión gramatical activa para toda la frase actual
+let exprGramaticalActual = null;
+
+// Detecta la expresión según la puntuación/palabras de la frase completa
+function detectarExpresionGramatical(texto) {
+  const t = texto.trim();
+  if (t.endsWith('?') || t.startsWith('¿'))
+    return { expr: 'surprised', intensidad: 0.55 }; // cejas arriba = pregunta sí/no
+  if (t.endsWith('!') || t.startsWith('¡'))
+    return { expr: 'happy', intensidad: 0.65 };
+  if (/\bno\b|\bnunca\b|\bjamás\b|\bnada\b|\bnadie\b/i.test(t))
+    return { expr: 'angry', intensidad: 0.30 }; // ceño = negación
+  return null;
+}
 
 // ─── Gestión de cola ──────────────────────────────────────────────────────────
 function actualizarCola() {
@@ -130,6 +161,11 @@ async function obtenerAnimacion(sena) {
 
 function finalizarSigno(volverReposo = false) {
   if (volverReposo) clearPose();
+  // Limpiar expresión solo cuando la cola está vacía (mantenerla entre señas de la misma frase)
+  if (colaSignos.length === 0) {
+    clearExpression(0.6);
+    exprGramaticalActual = null;
+  }
   mostrandoSigno = false;
   setTimeout(procesarCola, volverReposo ? 650 : 500);
 }
@@ -145,10 +181,21 @@ async function procesarCola() {
   document.getElementById('seña-contador').textContent =
     colaSignos.length > 0 ? `+${colaSignos.length} en cola` : '';
 
+  // ── Expresión facial ──────────────────────────────────────────────────────
+  // Prioridad: expresión léxica de la seña > expresión gramatical de la frase
+  const exprLexica = EXPRESION_SENA[sena.toLowerCase()];
+  const exprActiva = exprLexica || exprGramaticalActual;
+  if (exprActiva && exprActiva.intensidad > 0) {
+    setExpression(exprActiva.expr, exprActiva.intensidad);
+  } else {
+    clearExpression(0.4);
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const fallback     = document.getElementById('avatar-fallback');
   const avatarCanvas = document.getElementById('avatar-canvas');
 
-  // Único origen de datos: data/avatar_movimientos/<sena>.json (nuevo dataset)
+  // Único origen de datos: data/avatar_movimientos/<sena>.json
   let frames = null;
   try { frames = await obtenerAnimacion(sena); } catch {}
 
@@ -201,6 +248,8 @@ function normalizarTexto(texto) {
 // ─── Traducción ───────────────────────────────────────────────────────────────
 async function traducirTexto(texto) {
   if (!texto.trim()) return;
+  // Detectar expresión gramatical de la frase completa antes de añadir señas a la cola
+  exprGramaticalActual = detectarExpresionGramatical(texto);
   try {
     const r = await fetch('/api/traducir', {
       method: 'POST',
@@ -378,6 +427,7 @@ function limpiarTodo() {
   stopAnimation();
   colaSignos = [];
   mostrandoSigno = false;
+  exprGramaticalActual = null;
   actualizarCola();
   document.getElementById('texto-interim').textContent = '—';
   document.getElementById('texto-final').innerHTML = '';
@@ -386,6 +436,7 @@ function limpiarTodo() {
   document.getElementById('avatar-fallback').style.display = 'none';
   document.getElementById('avatar-canvas').style.opacity = '1';
   clearPose();
+  clearExpression(0.3);
 }
 
 function traducirManual() {
