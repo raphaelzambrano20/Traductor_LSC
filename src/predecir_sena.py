@@ -1,4 +1,6 @@
+import argparse
 import os
+import sys
 import warnings
 import time
 import threading
@@ -6,6 +8,7 @@ from collections import deque
 
 os.environ.setdefault("GLOG_minloglevel", "2")
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 warnings.filterwarnings("ignore", message="SymbolDatabase.GetPrototype.*")
 
 import cv2
@@ -131,6 +134,29 @@ def elegir_camara():
         url = input("URL de DroidCam [http://192.168.1.2:4747/video]: ").strip()
         return url or "http://192.168.1.2:4747/video"
     return 0
+
+
+def obtener_fuente_desde_argumentos():
+    parser = argparse.ArgumentParser(description="Predicción de señas LSC en tiempo real.")
+    parser.add_argument(
+        "--fuente",
+        choices=("local", "ip"),
+        help="Fuente elegida desde la interfaz web.",
+    )
+    parser.add_argument("--url", help="URL de la cámara IP o DroidCam.")
+    argumentos = parser.parse_args()
+
+    if argumentos.fuente == "local":
+        return 0
+    if argumentos.fuente == "ip":
+        return argumentos.url or "http://192.168.1.2:4747/video"
+
+    # Desde la web no hay terminal: usa la cámara local y evita el menú negro.
+    if not sys.stdin.isatty():
+        return 0
+
+    # Mantiene el selector de terminal al ejecutar el script a mano.
+    return elegir_camara()
 
 
 def predecir(fuente_camara=0):
@@ -352,5 +378,5 @@ def predecir(fuente_camara=0):
 
 
 if __name__ == "__main__":
-    fuente_camara = elegir_camara()
+    fuente_camara = obtener_fuente_desde_argumentos()
     predecir(fuente_camara)

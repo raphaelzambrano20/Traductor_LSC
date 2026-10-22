@@ -4,6 +4,7 @@ import sys
 import webbrowser
 from pathlib import Path
 from threading import Timer
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -59,11 +60,38 @@ def predecir():
 
 @app.route("/predecir/lanzar", methods=["POST"])
 def lanzar_prediccion():
+    datos = request.get_json(silent=True) or {}
+    tipo_fuente = str(datos.get("fuente", "local")).strip().lower()
+
+    if tipo_fuente not in {"local", "ip"}:
+        return jsonify({"ok": False, "error": "Fuente de cámara no válida."}), 400
+
+    ejecutable = Path(sys.executable)
+    if sys.platform == "win32":
+        pythonw = ejecutable.with_name("pythonw.exe")
+        if pythonw.exists():
+            ejecutable = pythonw
+
+    comando = [str(ejecutable), str(PROJECT_ROOT / "src" / "predecir_sena.py"), "--fuente", tipo_fuente]
+    if tipo_fuente == "ip":
+        url_camara = str(datos.get("url", "")).strip()
+        url_analizada = urlparse(url_camara)
+        if url_analizada.scheme not in {"http", "https"} or not url_analizada.netloc:
+            return jsonify({"ok": False, "error": "Escribe una URL válida para DroidCam."}), 400
+        comando.extend(["--url", url_camara])
+
     try:
-        subprocess.Popen(
-            [sys.executable, str(PROJECT_ROOT / "src" / "predecir_sena.py")],
-            creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0,
-        )
+        opciones_proceso = {
+            "stdin": subprocess.DEVNULL,
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+        }
+        if sys.platform == "win32":
+            opciones_proceso["creationflags"] = subprocess.CREATE_NO_WINDOW
+        else:
+            opciones_proceso["start_new_session"] = True
+
+        subprocess.Popen(comando, **opciones_proceso)
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})

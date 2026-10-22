@@ -534,6 +534,129 @@ button, input, select, textarea { font-family: inherit; }
 .launch-box p { color: var(--muted); font-size: 15px; margin-bottom: 1rem; }
 .launch-hint { margin-top: 0.75rem; font-size: 15px; font-weight: 600; }
 
+.camera-picker {
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.camera-picker h3 {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.85rem;
+}
+
+.camera-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.camera-option { cursor: pointer; display: block; }
+
+.camera-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.camera-option-body {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 92px;
+  padding: 1rem 1.1rem;
+  background: var(--paper);
+  border: 2px solid transparent;
+  border-radius: 18px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.camera-option-body svg {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.camera-option-body strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.camera-option-body small {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 0.15rem;
+}
+
+.camera-check {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 12px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-option input:checked + .camera-option-body {
+  background: #fff;
+  border-color: var(--blue);
+}
+
+.camera-option input:checked + .camera-option-body .camera-check {
+  display: inline-flex;
+}
+
+.camera-option input:focus-visible + .camera-option-body {
+  outline: 3px solid rgba(0, 113, 227, 0.45);
+  outline-offset: 2px;
+}
+
+.camera-url {
+  margin-top: 0.9rem;
+  padding: 1rem 1.1rem;
+  background: var(--paper);
+  border-radius: 16px;
+}
+
+.camera-url label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.camera-url input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--paper-2);
+  border-radius: 12px;
+  font-size: 15px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+}
+
+.camera-url input:focus { border-color: var(--blue); }
+
+.camera-url small {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .tips-box h3 {
   font-size: 21px;
   font-weight: 600;
@@ -1469,6 +1592,7 @@ button, input, select, textarea { font-family: inherit; }
   .footer-inner { flex-direction: column; gap: 0.75rem; }
   .page-header { padding-top: 2.25rem; }
   .card, .flow-card { min-height: 0; padding: 2.2rem 1.5rem; }
+  .camera-options { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
