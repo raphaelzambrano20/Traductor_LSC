@@ -20,7 +20,7 @@ from src.database.seed import seed_database
 from src.services.traductor_texto import traducir_texto
 from src.services.transcriptor_voz import TranscripcionError, transcribir_audio, vosk_configurado
 from src.services.landmarks_avatar import obtener_landmarks_sena, listar_senas_con_landmarks
-from src.services.descubrir_droidcam import descubrir_droidcam
+from src.services.descubrir_droidcam import url_droidcam_red
 from src.config import MODEL_PATH, DATASET_PATH, LEGACY_DATASET_PATH
 import subprocess
 import csv
@@ -77,13 +77,13 @@ def lanzar_prediccion():
     if tipo_fuente == "ip":
         url_camara = str(datos.get("url", "")).strip()
         if not url_camara:
-            encontrados = descubrir_droidcam()
-            if not encontrados:
+            red = url_droidcam_red()
+            if not red:
                 return jsonify({
                     "ok": False,
-                    "error": "No encontré DroidCam en la red. Abre la app en el celular y vuelve a intentar.",
-                }), 404
-            url_camara = encontrados[0]["url"]
+                    "error": "No pude leer la IP de esta red.",
+                }), 400
+            url_camara = red["url"]
         url_analizada = urlparse(url_camara)
         if url_analizada.scheme not in {"http", "https"} or not url_analizada.netloc:
             return jsonify({"ok": False, "error": "La dirección de DroidCam no es válida."}), 400
@@ -111,13 +111,10 @@ def lanzar_prediccion():
 
 @app.route("/api/camara/droidcam")
 def api_camara_droidcam():
-    encontrados = descubrir_droidcam()
-    if not encontrados:
-        return jsonify({
-            "ok": False,
-            "error": "No encontré DroidCam en la red. El celular debe estar en el mismo WiFi.",
-        }), 404
-    return jsonify({"ok": True, "camaras": encontrados, **encontrados[0]})
+    red = url_droidcam_red()
+    if not red:
+        return jsonify({"ok": False, "error": "No pude leer la IP de esta red."}), 400
+    return jsonify({"ok": True, **red})
 
 
 @app.route("/api/traducir", methods=["POST"])
