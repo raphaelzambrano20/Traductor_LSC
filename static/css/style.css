@@ -187,11 +187,19 @@ button, input, select, textarea { font-family: inherit; }
 
 /* HERO — banda de producto */
 .hero {
-  background: #000;
+  background-color: #000;
+  background-image:
+    linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.96) 27%, rgba(0, 0, 0, 0.62) 52%, rgba(0, 0, 0, 0.08) 100%),
+    url("/static/img/hero-lsc.jpg");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
   color: #f5f5f7;
-  text-align: center;
-  padding: 5.5rem 22px 5.75rem;
-  display: block;
+  text-align: left;
+  padding: 5.5rem 22px;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
   border-radius: 0;
   margin: 0;
   overflow: hidden;
@@ -201,7 +209,8 @@ button, input, select, textarea { font-family: inherit; }
 .hero::before { display: none; }
 
 .hero-text {
-  max-width: 720px;
+  width: 100%;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -214,6 +223,7 @@ button, input, select, textarea { font-family: inherit; }
   letter-spacing: -0.025em;
   margin-bottom: 0.7rem;
   color: #f5f5f7;
+  max-width: 500px;
 }
 
 .hero-text h1 em { font-style: normal; font-weight: 600; }
@@ -221,9 +231,9 @@ button, input, select, textarea { font-family: inherit; }
 .hero-text p,
 .hero-lede {
   font-size: clamp(1.1rem, 2.2vw, 1.35rem);
-  color: #a1a1a6;
-  max-width: 34rem;
-  margin: 0 auto;
+  color: #d2d2d7;
+  max-width: 30rem;
+  margin: 0;
   line-height: 1.4;
 }
 
@@ -231,7 +241,7 @@ button, input, select, textarea { font-family: inherit; }
   display: flex;
   flex-wrap: wrap;
   gap: 0.85rem;
-  justify-content: center;
+  justify-content: flex-start;
   margin-top: 1.75rem;
 }
 
@@ -1438,7 +1448,19 @@ button, input, select, textarea { font-family: inherit; }
   .acerca-grid,
   .dev-cards,
   .dev-stats { grid-template-columns: 1fr; }
-  .hero { padding: 3.75rem 18px 4rem; }
+  .hero {
+    min-height: 500px;
+    padding: 3.75rem 18px 4rem;
+    text-align: center;
+    background-image:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.86) 62%, #000 100%),
+      url("/static/img/hero-lsc.jpg");
+    background-position: 63% center;
+    align-items: flex-end;
+  }
+  .hero-text p,
+  .hero-lede { margin: 0 auto; }
+  .hero-actions { justify-content: center; }
   .hero-text h1, .hero h1 { font-size: 2.15rem; }
   .stats { flex-direction: column; gap: 1.25rem; }
   .comunicar-grid { grid-template-columns: 1fr; }
