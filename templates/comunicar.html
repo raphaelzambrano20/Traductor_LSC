@@ -4,9 +4,8 @@
 
 {% block content %}
 <div class="page-header">
-  <p class="kicker">Pipeline 2</p>
   <h1>Voz a seña</h1>
-  <p>Habla o escribe. El avatar interpreta en LSC, seña por seña.</p>
+  <p>Habla o escribe. El avatar interpreta cada seña.</p>
 </div>
 
 <div class="rt-layout">
@@ -86,7 +85,7 @@
 </script>
 <script type="module">
 import { initAvatar, clearPose, startAnimation, stopAnimation,
-         setExpression, clearExpression } from '/static/js/avatar3d.js?v=20261022a';
+         setExpression, clearExpression } from '/static/js/avatar3d.js?v=20261022b';
 
 // ─── Estado global ────────────────────────────────────────────────────────────
 let recognition = null;
@@ -288,7 +287,7 @@ async function iniciarMedidor() {
       const avg = datos.reduce((a, b) => a + b, 0) / datos.length;
       const pct = Math.min(100, avg * 4);
       barraEl.style.width = pct + '%';
-      barraEl.style.background = pct > 50 ? '#9b2c2c' : pct > 15 ? '#b85c38' : '#2c4a3e';
+      barraEl.style.background = pct > 50 ? '#de071c' : pct > 15 ? '#0071e3' : '#248a3d';
       meterRafId = requestAnimationFrame(tick);
     }
     tick();
@@ -322,10 +321,10 @@ function crearReconocimiento() {
   rec.interimResults = true;
   rec.maxAlternatives = 1;
 
-  rec.onstart = () => setEstado('Escuchando… habla ahora', '#2c4a3e');
+  rec.onstart = () => setEstado('Escuchando… habla ahora', '#248a3d');
 
   rec.onspeechstart = () => {
-    setEstado('Detectando voz…', '#b85c38');
+    setEstado('Detectando voz…', '#0071e3');
     document.getElementById('mic-icon').classList.add('on');
   };
 
@@ -345,14 +344,14 @@ function crearReconocimiento() {
 
   rec.onerror = (e) => {
     const msgs = {
-      'no-speech':   ['Sin voz detectada — sigue hablando', '#b0892e'],
-      'network':     ['Sin internet — el reconocimiento lo requiere', '#9b2c2c'],
-      'not-allowed': ['Permiso de micrófono denegado', '#9b2c2c'],
+      'no-speech':   ['Sin voz detectada — sigue hablando', '#b64400'],
+      'network':     ['Sin internet — el reconocimiento lo requiere', '#de071c'],
+      'not-allowed': ['Permiso de micrófono denegado', '#de071c'],
       'aborted':     null,  // ignorar — ocurre al detener manualmente
     };
     if (e.error === 'aborted') return;
     const entry = msgs[e.error];
-    const [msg, color] = entry !== undefined ? entry : [`Error: ${e.error}`, '#9b2c2c'];
+    const [msg, color] = entry !== undefined ? entry : [`Error: ${e.error}`, '#de071c'];
     setEstado(msg, color);
     if (e.error === 'not-allowed' || e.error === 'network') {
       escuchando = false;
@@ -366,7 +365,7 @@ function crearReconocimiento() {
     // Guard: ignorar si este objeto ya fue reemplazado por uno más nuevo
     if (rec !== recognition) return;
     if (escuchando) {
-      setEstado('Escuchando… habla ahora', '#2c4a3e');
+      setEstado('Escuchando… habla ahora', '#248a3d');
       document.getElementById('mic-icon').classList.remove('on');
       setTimeout(() => {
         if (escuchando && rec === recognition) {
@@ -394,7 +393,7 @@ function toggleEscucha() {
     try {
       recognition.start();
     } catch(e) {
-      setEstado('Error al iniciar micrófono: ' + e.message, '#9b2c2c');
+      setEstado('Error al iniciar micrófono: ' + e.message, '#de071c');
       recognition = null;
       return;
     }
