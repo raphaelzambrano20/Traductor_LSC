@@ -4,7 +4,8 @@
 {% block content %}
 <div class="page-header dev-header">
   <div>
-    <h1>📊 Estado del Dataset</h1>
+    <p class="kicker">Muestras</p>
+    <h1>Estado del dataset</h1>
     <p>{{ total }} muestras totales en {{ senas|length }} señas distintas</p>
   </div>
   <a href="/dev" class="btn-back">← Panel</a>
@@ -12,7 +13,7 @@
 
 {% if not senas %}
 <div class="alert alert-warning">
-  ⚠️ No hay muestras capturadas aún. Ve a Capturar Dataset para empezar.
+  No hay muestras capturadas aún. Ve a Capturar dataset para empezar.
 </div>
 {% else %}
 <div class="dataset-table-box">
@@ -47,7 +48,7 @@
 </div>
 
 <div class="tips-box" style="margin-top: 1.5rem;">
-  <h3>📌 Referencias</h3>
+  <h3>Referencias</h3>
   <ul>
     <li><span class="badge badge-ok">Bueno</span> — 50 o más muestras</li>
     <li><span class="badge badge-warn">Regular</span> — entre 30 y 49 muestras</li>

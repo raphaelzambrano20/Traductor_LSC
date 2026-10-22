@@ -1,25 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Voz a LSC — Traductor LSC{% endblock %}
+{% block title %}Voz a seña — LSCNOVA{% endblock %}
+{% block main_class %}main-wide{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1>🎤 Traductor en Tiempo Real</h1>
-  <p>Habla y el sistema mostrará las señas automáticamente como un intérprete</p>
+  <p class="kicker">Pipeline 2</p>
+  <h1>Voz a seña</h1>
+  <p>Habla o escribe. El avatar interpreta en LSC, seña por seña.</p>
 </div>
 
 <div class="rt-layout">
 
-  <!-- Panel izquierdo: micrófono y texto -->
   <div class="rt-panel-input">
     <div class="mic-status" id="mic-status">
-      <div class="mic-icon" id="mic-icon">🎙️</div>
-      <span id="mic-label">Presiona para hablar</span>
+      <span class="mic-dot" id="mic-icon"></span>
+      <span id="mic-label">Listo para escuchar</span>
     </div>
-    <div id="mic-meter" style="display:none; height:8px; background:#e0e0e0; border-radius:4px; margin-top:6px; overflow:hidden;">
-      <div id="mic-meter-bar" style="height:100%; width:0%; background:#06d6a0; border-radius:4px; transition:width 0.05s;"></div>
+    <div id="mic-meter" class="mic-meter">
+      <div id="mic-meter-bar" class="mic-meter-bar"></div>
     </div>
-    <div id="mic-meter-label" style="display:none; font-size:0.75rem; color:#888; margin-top:3px;">
-      Nivel de micrófono — si la barra no se mueve cuando hablas, Chrome está usando el micrófono equivocado
+    <div id="mic-meter-label" class="mic-meter-label">
+      Si la barra no se mueve al hablar, Chrome está usando otro micrófono.
     </div>
 
     <button class="btn-mic" id="btn-mic" onclick="toggleEscucha()">
@@ -27,56 +28,49 @@
     </button>
 
     <div class="transcript-box">
-      <div class="transcript-label">Escuchando:</div>
+      <div class="transcript-label">Escuchando</div>
       <div id="texto-interim" class="texto-interim">—</div>
       <div id="texto-final" class="texto-final"></div>
     </div>
 
     <div class="cola-box">
-      <div class="transcript-label">Cola de señas:</div>
+      <div class="transcript-label">Cola de señas</div>
       <div id="cola-senas" class="cola-senas">
         <span class="cola-vacia">Sin señas en cola</span>
       </div>
     </div>
 
     <div class="texto-manual-box">
-      <div class="transcript-label">O escribe directamente:</div>
+      <div class="transcript-label">O escribe</div>
       <div style="display:flex; gap:0.5rem;">
         <input type="text" id="texto-manual" class="texto-manual-input"
-               placeholder="Escribe y presiona Enter..."
+               placeholder="Escribe y pulsa Enter"
                onkeydown="if(event.key==='Enter') traducirManual()">
-        <button class="btn-traducir-manual" onclick="traducirManual()">→</button>
+        <button class="btn-traducir-manual" onclick="traducirManual()" aria-label="Traducir">→</button>
       </div>
     </div>
 
-    <button class="btn-limpiar" onclick="limpiarTodo()">🗑️ Limpiar</button>
+    <button class="btn-limpiar" onclick="limpiarTodo()">Limpiar</button>
   </div>
 
-  <!-- Panel derecho: avatar 3D -->
   <div class="rt-panel-avatar">
     <div class="avatar-header">
-      <span id="seña-actual" class="seña-actual-label">—</span>
+      <span id="seña-actual" class="seña-actual-label">En reposo</span>
       <span id="seña-contador" class="seña-contador"></span>
     </div>
-    <div style="position:relative; display:inline-block;">
+    <div class="avatar-stage">
       <canvas id="avatar-canvas" width="400" height="420"></canvas>
-      <div id="avatar-loading" style="
-        position:absolute; inset:0; display:flex;
-        align-items:center; justify-content:center;
-        background:rgba(220,232,240,0.88);
-        font-size:0.9rem; color:#555; border-radius:8px;">
-        Iniciando avatar 3D...
-      </div>
+      <div id="avatar-loading" class="avatar-loading">Preparando el avatar…</div>
     </div>
     <div id="avatar-fallback" class="avatar-fallback" style="display:none">
-      <span id="fallback-texto">🤟</span>
+      <span id="fallback-texto">—</span>
     </div>
   </div>
 
 </div>
 
 <div id="alerta-browser" class="alert alert-warning" style="display:none">
-  ⚠️ Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.
+  Este navegador no reconoce voz. Usa Chrome o Edge.
 </div>
 {% endblock %}
 
@@ -92,7 +86,7 @@
 </script>
 <script type="module">
 import { initAvatar, clearPose, startAnimation, stopAnimation,
-         setExpression, clearExpression } from '/static/js/avatar3d.js?v=20260608a';
+         setExpression, clearExpression } from '/static/js/avatar3d.js?v=20261022a';
 
 // ─── Estado global ────────────────────────────────────────────────────────────
 let recognition = null;
@@ -294,7 +288,7 @@ async function iniciarMedidor() {
       const avg = datos.reduce((a, b) => a + b, 0) / datos.length;
       const pct = Math.min(100, avg * 4);
       barraEl.style.width = pct + '%';
-      barraEl.style.background = pct > 50 ? '#f72585' : pct > 15 ? '#ffd166' : '#06d6a0';
+      barraEl.style.background = pct > 50 ? '#9b2c2c' : pct > 15 ? '#b85c38' : '#2c4a3e';
       meterRafId = requestAnimationFrame(tick);
     }
     tick();
@@ -328,11 +322,11 @@ function crearReconocimiento() {
   rec.interimResults = true;
   rec.maxAlternatives = 1;
 
-  rec.onstart = () => setEstado('Escuchando... habla ahora', '#06d6a0');
+  rec.onstart = () => setEstado('Escuchando… habla ahora', '#2c4a3e');
 
   rec.onspeechstart = () => {
-    setEstado('Detectando voz...', '#f72585');
-    document.getElementById('mic-icon').textContent = '🔴';
+    setEstado('Detectando voz…', '#b85c38');
+    document.getElementById('mic-icon').classList.add('on');
   };
 
   rec.onresult = (event) => {
@@ -351,20 +345,20 @@ function crearReconocimiento() {
 
   rec.onerror = (e) => {
     const msgs = {
-      'no-speech':   ['Sin voz detectada — sigue hablando', '#ffd166'],
-      'network':     ['Sin internet — el reconocimiento lo requiere', '#ef476f'],
-      'not-allowed': ['Permiso de micrófono denegado', '#ef476f'],
+      'no-speech':   ['Sin voz detectada — sigue hablando', '#b0892e'],
+      'network':     ['Sin internet — el reconocimiento lo requiere', '#9b2c2c'],
+      'not-allowed': ['Permiso de micrófono denegado', '#9b2c2c'],
       'aborted':     null,  // ignorar — ocurre al detener manualmente
     };
     if (e.error === 'aborted') return;
     const entry = msgs[e.error];
-    const [msg, color] = entry !== undefined ? entry : [`Error: ${e.error}`, '#ef476f'];
+    const [msg, color] = entry !== undefined ? entry : [`Error: ${e.error}`, '#9b2c2c'];
     setEstado(msg, color);
     if (e.error === 'not-allowed' || e.error === 'network') {
       escuchando = false;
       document.getElementById('btn-mic').textContent = 'Iniciar traducción';
       document.getElementById('btn-mic').classList.remove('btn-mic-activo');
-      document.getElementById('mic-icon').textContent = '🎙️';
+      document.getElementById('mic-icon').classList.remove('on');
     }
   };
 
@@ -372,8 +366,8 @@ function crearReconocimiento() {
     // Guard: ignorar si este objeto ya fue reemplazado por uno más nuevo
     if (rec !== recognition) return;
     if (escuchando) {
-      setEstado('Escuchando... habla ahora', '#06d6a0');
-      document.getElementById('mic-icon').textContent = '🎙️';
+      setEstado('Escuchando… habla ahora', '#2c4a3e');
+      document.getElementById('mic-icon').classList.remove('on');
       setTimeout(() => {
         if (escuchando && rec === recognition) {
           recognition = crearReconocimiento();
@@ -381,8 +375,8 @@ function crearReconocimiento() {
         }
       }, 100);
     } else {
-      setEstado('Presiona para hablar', '');
-      document.getElementById('mic-icon').textContent = '🎙️';
+      setEstado('Listo para escuchar', '');
+      document.getElementById('mic-icon').classList.remove('on');
     }
   };
 
@@ -400,16 +394,16 @@ function toggleEscucha() {
     try {
       recognition.start();
     } catch(e) {
-      setEstado('Error al iniciar micrófono: ' + e.message, '#ef476f');
+      setEstado('Error al iniciar micrófono: ' + e.message, '#9b2c2c');
       recognition = null;
       return;
     }
     escuchando = true;
     iniciarMedidor();
-    document.getElementById('btn-mic').textContent = '⏹️ Detener traducción';
+    document.getElementById('btn-mic').textContent = 'Detener traducción';
     document.getElementById('btn-mic').classList.add('btn-mic-activo');
-    document.getElementById('mic-icon').textContent = '🔴';
-    document.getElementById('mic-label').textContent = 'Iniciando micrófono...';
+    document.getElementById('mic-icon').classList.add('on');
+    document.getElementById('mic-label').textContent = 'Iniciando micrófono…';
   } else {
     // Primero false, luego stop() — evita que onend reinicie
     escuchando = false;
@@ -417,8 +411,8 @@ function toggleEscucha() {
     detenerMedidor();
     document.getElementById('btn-mic').textContent = 'Iniciar traducción';
     document.getElementById('btn-mic').classList.remove('btn-mic-activo');
-    document.getElementById('mic-icon').textContent = '🎙️';
-    document.getElementById('mic-label').textContent = 'Presiona para hablar';
+    document.getElementById('mic-icon').classList.remove('on');
+    document.getElementById('mic-label').textContent = 'Listo para escuchar';
     document.getElementById('texto-interim').textContent = '—';
   }
 }
@@ -431,7 +425,7 @@ function limpiarTodo() {
   actualizarCola();
   document.getElementById('texto-interim').textContent = '—';
   document.getElementById('texto-final').innerHTML = '';
-  document.getElementById('seña-actual').textContent = '—';
+  document.getElementById('seña-actual').textContent = 'En reposo';
   document.getElementById('seña-contador').textContent = '';
   document.getElementById('avatar-fallback').style.display = 'none';
   document.getElementById('avatar-canvas').style.opacity = '1';

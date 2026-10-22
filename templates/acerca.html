@@ -1,40 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Acerca — Traductor LSCNova{% endblock %}
+{% block title %}Proyecto — LSCNOVA{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1>ℹ️ Acerca del Proyecto</h1>
-  <p>Conoce más sobre este sistema de traducción bidireccional</p>
+  <p class="kicker">UNIPAZ · SISINFO</p>
+  <h1>El aula, en las dos lenguas</h1>
 </div>
+
+<p class="acerca-lead">Facilitar la comunicación entre oyentes y estudiantes sordos, sin traducir palabra por palabra y sin tratar la LSC como un extra.</p>
 
 <div class="acerca-grid">
   <div class="acerca-card">
-    <div class="acerca-icon">🎯</div>
-    <h3>Objetivo</h3>
-    <p>Facilitar la comunicación bidireccional entre estudiantes o profesores oyentes y estudiantes con discapacidad auditiva en el aula de clase mediante inteligencia artificial y visión por computador.</p>
+    <h3>Para qué</h3>
+    <p>Que un profesor o un compañero pueda hablar y ver la seña; que un estudiante sordo pueda señar y ser oído. El dominio de trabajo es el aula: presentación personal, cortesía, ayuda.</p>
   </div>
 
   <div class="acerca-card">
-    <div class="acerca-icon">🔄</div>
-    <h3>Comunicación Bidireccional</h3>
-    <p>Los estudiantes no oyente hace señas frente a la cámara y el sistema las convierte en texto y voz. Los estudiantes o profesores oyente habla y el sistema muestra la seña en LSC a través de un avatar.</p>
+    <h3>Dos caminos</h3>
+    <p>Seña a voz: cámara, MediaPipe y un clasificador ExtraTrees. Voz a seña: reconocimiento de habla, traducción a glosa y un avatar VRM que ejecuta la seña grabada.</p>
   </div>
 
   <div class="acerca-card">
-    <div class="acerca-icon">🧠</div>
-    <h3>Tecnología</h3>
-    <p>Python · OpenCV · MediaPipe · Scikit-learn · Flask · SQLite · Vosk · gTTS</p>
+    <h3>Lengua, no mimo</h3>
+    <p>La Lengua de Señas Colombiana es lengua natural de la comunidad sorda, reconocida por la Ley 982 de 2005. La gramática y las señas nuevas se validan con el CASD José Prudencio Padilla.</p>
   </div>
 
   <div class="acerca-card">
-    <div class="acerca-icon">📖</div>
-    <h3>Lengua de Señas Colombiana</h3>
-    <p>La LSC es la lengua natural de la comunidad sorda de Colombia, reconocida oficialmente por la Ley 982 de 2005.</p>
+    <h3>Cómo está hecho</h3>
+    <p>Python, OpenCV, MediaPipe, Scikit-learn, Flask, SQLite, Vosk y un avatar VRM con Three.js. App de escritorio para el aula, no un producto genérico de internet.</p>
   </div>
 </div>
 
 <div class="version-box">
-  <span class="version-badge">v1.0 — Fase 1</span>
-  <p>Proyecto académico en fase de desarrollo</p>
+  <span class="version-badge">Versión 1.0 · en desarrollo</span>
+  <p>Tesis de Ingeniería Informática. Rafael Zambrano y Jhoan Gómez.</p>
 </div>
 {% endblock %}

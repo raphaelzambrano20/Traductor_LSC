@@ -1,62 +1,56 @@
 {% extends "base.html" %}
-{% block title %}Aprender LSC — Traductor LSCNova{% endblock %}
+{% block title %}Aprender LSC — LSCNOVA{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1>📚 Aprender LSC</h1>
-  <p>Explora el abecedario y vocabulario básico de la Lengua de Señas Colombiana</p>
+  <p class="kicker">Vocabulario de aula</p>
+  <h1>Aprender LSC</h1>
+  <p>Abecedario, saludos, números y frases. La glosa respeta el orden de la lengua, no el del español.</p>
 </div>
 
 <div class="tabs">
   <button class="tab active" onclick="mostrarTab('abecedario', this)">Abecedario</button>
   <button class="tab" onclick="mostrarTab('saludos', this)">Saludos</button>
   <button class="tab" onclick="mostrarTab('numeros', this)">Números</button>
-  <button class="tab" onclick="mostrarTab('frases', this)">Frases básicas</button>
+  <button class="tab" onclick="mostrarTab('frases', this)">Frases</button>
 </div>
 
 <div id="tab-abecedario" class="tab-content active">
   <div class="alphabet-grid">
     {% for letra in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
     <div class="letra-card">
-      <div class="letra-emoji">🤟</div>
       <span class="letra">{{ letra }}</span>
     </div>
     {% endfor %}
   </div>
-  <p class="content-note">📌 Los gifs o imágenes del abecedario LSC se agregarán próximamente</p>
+  <p class="content-note">Las imágenes del dactilológico se irán sumando a cada letra.</p>
 </div>
 
 <div id="tab-saludos" class="tab-content">
   <div class="vocab-grid">
     <div class="vocab-card">
-      <div class="vocab-emoji">👋</div>
       <h3>Hola</h3>
-      <p>Saludo básico en LSC</p>
+      <p>Saludo de entrada</p>
     </div>
     <div class="vocab-card">
-      <div class="vocab-emoji">🙏</div>
       <h3>Gracias</h3>
-      <p>Expresión de agradecimiento</p>
+      <p>Agradecimiento</p>
     </div>
     <div class="vocab-card">
-      <div class="vocab-emoji">😊</div>
       <h3>Bien</h3>
-      <p>Estado positivo</p>
+      <p>Estado afirmativo</p>
     </div>
     <div class="vocab-card">
-      <div class="vocab-emoji">😔</div>
       <h3>Mal</h3>
       <p>Estado negativo</p>
     </div>
     <div class="vocab-card">
-      <div class="vocab-emoji">🆘</div>
       <h3>Ayuda</h3>
-      <p>Solicitar asistencia</p>
+      <p>Pedir asistencia</p>
     </div>
     <div class="vocab-card">
-      <div class="vocab-emoji">👂</div>
       <h3>Sordo</h3>
-      <p>Persona con discapacidad auditiva</p>
+      <p>Identidad y comunidad</p>
     </div>
   </div>
 </div>
@@ -65,12 +59,11 @@
   <div class="alphabet-grid">
     {% for n in range(10) %}
     <div class="letra-card">
-      <div class="letra-emoji">🤟</div>
       <span class="letra">{{ n }}</span>
     </div>
     {% endfor %}
   </div>
-  <p class="content-note">📌 Los recursos visuales de los números se agregarán próximamente</p>
+  <p class="content-note">Los recursos visuales de los números se irán sumando.</p>
 </div>
 
 <div id="tab-frases" class="tab-content">

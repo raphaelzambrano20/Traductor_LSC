@@ -1,43 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Inicio — Traductor LSCNova{% endblock %}
+{% block title %}Inicio — LSCNOVA{% endblock %}
 
 {% block content %}
 <section class="hero">
   <div class="hero-text">
-    <h1>Comunícate sin barreras</h1>
-    <p>Sistema de traducción bidireccional de Lengua de Señas Colombiana con Inteligencia Artificial</p>
+    <p class="kicker">Traductor bidireccional · Aula</p>
+    <h1>Seña y voz,<br><em>en el mismo espacio.</em></h1>
+    <p class="hero-lede">Sistema de Lengua de Señas Colombiana para la clase: de la mano a la palabra, y de la palabra a la mano.</p>
+    <div class="hero-actions">
+      <a href="/predecir" class="btn-solid">Seña a voz</a>
+      <a href="/comunicar" class="btn-ghost">Voz a seña</a>
+    </div>
   </div>
-  <div class="hero-badge">🤟</div>
-</section>
-
-<section class="cards-grid">
-  <a href="/predecir" class="card card-primary">
-    <div class="card-icon">📷</div>
-    <h2>Predecir Seña</h2>
-    <p>Haz una seña frente a la cámara y el sistema la convierte en texto y voz</p>
-    <span class="card-btn">Comenzar</span>
-  </a>
-
-  <a href="/comunicar" class="card card-secondary">
-    <div class="card-icon">🎤</div>
-    <h2>Voz a LSC</h2>
-    <p>Habla o escribe y el avatar mostrará la seña correspondiente en LSC</p>
-    <span class="card-btn">Comenzar</span>
-  </a>
-
-  <a href="/aprender" class="card card-accent">
-    <div class="card-icon">📚</div>
-    <h2>Aprender LSC</h2>
-    <p>Explora el abecedario y el vocabulario básico de la Lengua de Señas Colombiana</p>
-    <span class="card-btn">Explorar</span>
-  </a>
-
-  <a href="/acerca" class="card card-info">
-    <div class="card-icon">ℹ️</div>
-    <h2>Acerca del Proyecto</h2>
-    <p>Conoce más sobre este sistema y las tecnologías que lo hacen posible</p>
-    <span class="card-btn">Ver más</span>
-  </a>
+  <aside class="hero-aside">
+    <p class="hero-note">Hecho para el aula, con la comunidad sorda del CASD José Prudencio Padilla. Tesis de Ingeniería Informática, UNIPAZ.</p>
+    <p class="hero-note">Dos caminos. Un mismo idioma. LSC, no español palabrado.</p>
+  </aside>
 </section>
 
 <section class="stats">
@@ -50,8 +28,38 @@
     <span class="stat-label">Señas registradas</span>
   </div>
   <div class="stat">
-    <span class="stat-number">{{ '✓' if modelo_listo else '⏳' }}</span>
-    <span class="stat-label">Modelo {{ 'listo' if modelo_listo else 'pendiente' }}</span>
+    <span class="stat-number">{{ 'Listo' if modelo_listo else 'En curso' }}</span>
+    <span class="stat-label">Modelo de predicción</span>
   </div>
+</section>
+
+<section class="cards-grid">
+  <a href="/predecir" class="card">
+    <span class="card-index">01</span>
+    <h2>Seña a voz</h2>
+    <p>Haz la seña frente a la cámara. El clasificador la convierte en texto y la reproduce en voz.</p>
+    <span class="card-btn">Abrir</span>
+  </a>
+
+  <a href="/comunicar" class="card">
+    <span class="card-index">02</span>
+    <h2>Voz a seña</h2>
+    <p>Habla o escribe. El avatar interpreta la seña en LSC, con expresión incluida.</p>
+    <span class="card-btn">Abrir</span>
+  </a>
+
+  <a href="/aprender" class="card">
+    <span class="card-index">03</span>
+    <h2>Aprender LSC</h2>
+    <p>Abecedario, saludos, números y frases básicas del aula. Un vocabulario para empezar.</p>
+    <span class="card-btn">Explorar</span>
+  </a>
+
+  <a href="/acerca" class="card">
+    <span class="card-index">04</span>
+    <h2>El proyecto</h2>
+    <p>Por qué existe LSCNOVA, con quién se valida y qué tecnologías lo sostienen.</p>
+    <span class="card-btn">Leer</span>
+  </a>
 </section>
 {% endblock %}
