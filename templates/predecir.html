@@ -39,7 +39,50 @@
   </div>
 
   <div class="launch-box">
-    <p>La predicción abre una ventana aparte, con acceso directo a la cámara.</p>
+    <div class="camera-picker">
+      <h3>Elige la cámara</h3>
+      <div class="camera-options" role="radiogroup" aria-label="Fuente de cámara">
+        <label class="camera-option">
+          <input type="radio" name="fuente-camara" value="local" checked onchange="actualizarFuenteCamara()">
+          <span class="camera-option-body">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="12" rx="2"></rect>
+              <path d="M8 21h8M12 17v4"></path>
+            </svg>
+            <span>
+              <strong>Cámara del equipo</strong>
+              <small>Webcam integrada o USB</small>
+            </span>
+            <span class="camera-check" aria-hidden="true">✓</span>
+          </span>
+        </label>
+
+        <label class="camera-option">
+          <input type="radio" name="fuente-camara" value="ip" onchange="actualizarFuenteCamara()">
+          <span class="camera-option-body">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="7" y="2" width="10" height="20" rx="2"></rect>
+              <path d="M10 5h4M11 18h2"></path>
+            </svg>
+            <span>
+              <strong>DroidCam</strong>
+              <small>Celular conectado por WiFi</small>
+            </span>
+            <span class="camera-check" aria-hidden="true">✓</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="camera-url" id="camera-url-box" hidden>
+        <label for="camera-url-input">Dirección de DroidCam</label>
+        <input id="camera-url-input" type="url"
+               placeholder="http://192.168.1.2:4747/video"
+               autocomplete="url">
+        <small>Encuéntrala en la aplicación DroidCam del celular.</small>
+      </div>
+    </div>
+
+    <p>La predicción abrirá directamente la ventana de cámara, sin mostrar una consola.</p>
     <button class="btn-launch" id="btn-lanzar" onclick="lanzarPrediccion()" {% if not modelo_listo %}disabled{% endif %}>
       Iniciar predicción
     </button>
@@ -60,30 +103,59 @@
 
 {% block scripts %}
 <script>
-function lanzarPrediccion() {
+function actualizarFuenteCamara() {
+  const fuente = document.querySelector('input[name="fuente-camara"]:checked').value;
+  const urlBox = document.getElementById('camera-url-box');
+  urlBox.hidden = fuente !== 'ip';
+
+  if (fuente === 'ip') {
+    setTimeout(() => document.getElementById('camera-url-input').focus(), 50);
+  }
+}
+
+async function lanzarPrediccion() {
   const btn = document.getElementById('btn-lanzar');
   const status = document.getElementById('launch-status');
+  const fuente = document.querySelector('input[name="fuente-camara"]:checked').value;
+  const url = document.getElementById('camera-url-input').value.trim();
+
+  if (fuente === 'ip') {
+    try {
+      const direccion = new URL(url);
+      if (!['http:', 'https:'].includes(direccion.protocol)) throw new Error();
+    } catch {
+      status.textContent = 'Escribe una dirección válida de DroidCam.';
+      status.style.color = 'var(--danger)';
+      document.getElementById('camera-url-input').focus();
+      return;
+    }
+  }
+
   btn.disabled = true;
   btn.textContent = 'Abriendo...';
-  fetch('/predecir/lanzar', { method: 'POST' })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        status.textContent = 'Ventana de predicción abierta.';
-        status.style.color = 'var(--success)';
-      } else {
-        status.textContent = 'Error: ' + data.error;
-        status.style.color = 'var(--danger)';
-      }
-      btn.disabled = false;
-      btn.textContent = 'Iniciar predicción';
-    })
-    .catch(() => {
+
+  try {
+    const respuesta = await fetch('/predecir/lanzar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fuente, url })
+    });
+    const data = await respuesta.json();
+
+    if (data.ok) {
+      status.textContent = 'Cámara iniciada. La ventana puede tardar unos segundos en aparecer.';
+      status.style.color = 'var(--success)';
+    } else {
+      status.textContent = data.error || 'No fue posible iniciar la cámara.';
+      status.style.color = 'var(--danger)';
+    }
+  } catch {
       status.textContent = 'No se pudo conectar con el servidor.';
       status.style.color = 'var(--danger)';
-      btn.disabled = false;
-      btn.textContent = 'Iniciar predicción';
-    });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Iniciar predicción';
+  }
 }
 </script>
 {% endblock %}

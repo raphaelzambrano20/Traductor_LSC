@@ -6,7 +6,6 @@ import types
 import hashlib
 
 from gtts import gTTS
-import pygame
 
 PYTHON_USER_BASE = Path(__file__).resolve().parents[1] / ".python_user_base"
 PYTHON_USER_BASE.mkdir(exist_ok=True)
@@ -17,6 +16,7 @@ COMTYPES_CACHE.mkdir(exist_ok=True)
 AUDIO_CACHE = Path(__file__).resolve().parents[1] / "audio_cache"
 AUDIO_CACHE.mkdir(exist_ok=True)
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+import pygame
 
 try:
     import comtypes
