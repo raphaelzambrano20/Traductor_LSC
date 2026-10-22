@@ -74,11 +74,8 @@
       </div>
 
       <div class="camera-url" id="camera-url-box" hidden>
-        <label for="camera-url-input">Dirección de DroidCam</label>
-        <input id="camera-url-input" type="url"
-               placeholder="http://192.168.1.2:4747/video"
-               autocomplete="url">
-        <small>Encuéntrala en la aplicación DroidCam del celular.</small>
+        <p id="droidcam-status">Al elegir DroidCam busco solo la IP en tu red.</p>
+        <input id="camera-url-input" type="hidden" value="">
       </div>
     </div>
 
@@ -109,29 +106,56 @@ function actualizarFuenteCamara() {
   urlBox.hidden = fuente !== 'ip';
 
   if (fuente === 'ip') {
-    setTimeout(() => document.getElementById('camera-url-input').focus(), 50);
+    buscarDroidCam();
   }
+}
+
+function setEstadoDroidCam(mensaje, ok) {
+  const el = document.getElementById('droidcam-status');
+  el.textContent = mensaje;
+  el.style.color = ok === false ? 'var(--danger)' : ok ? 'var(--success)' : '';
+}
+
+async function buscarDroidCam() {
+  const input = document.getElementById('camera-url-input');
+  setEstadoDroidCam('Buscando DroidCam en tu WiFi…');
+  input.value = '';
+
+  try {
+    const respuesta = await fetch('/api/camara/droidcam');
+    const data = await respuesta.json();
+    if (data.ok && data.url) {
+      input.value = data.url;
+      setEstadoDroidCam('DroidCam encontrado en ' + data.ip + '. Se abrirá solo.', true);
+      return data.url;
+    }
+    setEstadoDroidCam(data.error || 'No encontré DroidCam en la red.', false);
+  } catch {
+    setEstadoDroidCam('No pude buscar DroidCam. Revisa que el servidor esté activo.', false);
+  }
+  return '';
 }
 
 async function lanzarPrediccion() {
   const btn = document.getElementById('btn-lanzar');
   const status = document.getElementById('launch-status');
   const fuente = document.querySelector('input[name="fuente-camara"]:checked').value;
-  const url = document.getElementById('camera-url-input').value.trim();
+  let url = document.getElementById('camera-url-input').value.trim();
 
-  if (fuente === 'ip') {
-    try {
-      const direccion = new URL(url);
-      if (!['http:', 'https:'].includes(direccion.protocol)) throw new Error();
-    } catch {
-      status.textContent = 'Escribe una dirección válida de DroidCam.';
+  btn.disabled = true;
+  btn.textContent = fuente === 'ip' ? 'Buscando DroidCam...' : 'Abriendo...';
+
+  if (fuente === 'ip' && !url) {
+    url = await buscarDroidCam();
+    if (!url) {
+      status.textContent = 'Abre DroidCam en el celular y vuelve a intentar.';
       status.style.color = 'var(--danger)';
-      document.getElementById('camera-url-input').focus();
+      btn.disabled = false;
+      btn.textContent = 'Iniciar predicción';
       return;
     }
   }
 
-  btn.disabled = true;
   btn.textContent = 'Abriendo...';
 
   try {
@@ -143,6 +167,9 @@ async function lanzarPrediccion() {
     const data = await respuesta.json();
 
     if (data.ok) {
+      if (data.url) {
+        document.getElementById('camera-url-input').value = data.url;
+      }
       status.textContent = 'Cámara iniciada. La ventana puede tardar unos segundos en aparecer.';
       status.style.color = 'var(--success)';
     } else {

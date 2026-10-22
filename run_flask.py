@@ -20,6 +20,7 @@ from src.database.seed import seed_database
 from src.services.traductor_texto import traducir_texto
 from src.services.transcriptor_voz import TranscripcionError, transcribir_audio, vosk_configurado
 from src.services.landmarks_avatar import obtener_landmarks_sena, listar_senas_con_landmarks
+from src.services.descubrir_droidcam import descubrir_droidcam
 from src.config import MODEL_PATH, DATASET_PATH, LEGACY_DATASET_PATH
 import subprocess
 import csv
@@ -75,9 +76,17 @@ def lanzar_prediccion():
     comando = [str(ejecutable), str(PROJECT_ROOT / "src" / "predecir_sena.py"), "--fuente", tipo_fuente]
     if tipo_fuente == "ip":
         url_camara = str(datos.get("url", "")).strip()
+        if not url_camara:
+            encontrados = descubrir_droidcam()
+            if not encontrados:
+                return jsonify({
+                    "ok": False,
+                    "error": "No encontré DroidCam en la red. Abre la app en el celular y vuelve a intentar.",
+                }), 404
+            url_camara = encontrados[0]["url"]
         url_analizada = urlparse(url_camara)
         if url_analizada.scheme not in {"http", "https"} or not url_analizada.netloc:
-            return jsonify({"ok": False, "error": "Escribe una URL válida para DroidCam."}), 400
+            return jsonify({"ok": False, "error": "La dirección de DroidCam no es válida."}), 400
         comando.extend(["--url", url_camara])
 
     try:
@@ -92,14 +101,23 @@ def lanzar_prediccion():
             opciones_proceso["start_new_session"] = True
 
         subprocess.Popen(comando, **opciones_proceso)
-        return jsonify({"ok": True})
+        extra = {}
+        if tipo_fuente == "ip":
+            extra["url"] = url_camara
+        return jsonify({"ok": True, **extra})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 
 
-@app.route("/comunicar")
-def comunicar():
-    return render_template("comunicar.html", vosk_ok=vosk_configurado())
+@app.route("/api/camara/droidcam")
+def api_camara_droidcam():
+    encontrados = descubrir_droidcam()
+    if not encontrados:
+        return jsonify({
+            "ok": False,
+            "error": "No encontré DroidCam en la red. El celular debe estar en el mismo WiFi.",
+        }), 404
+    return jsonify({"ok": True, "camaras": encontrados, **encontrados[0]})
 
 
 @app.route("/api/traducir", methods=["POST"])

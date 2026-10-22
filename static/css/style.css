@@ -630,6 +630,12 @@ button, input, select, textarea { font-family: inherit; }
   border-radius: 16px;
 }
 
+.camera-url p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
 .camera-url label {
   display: block;
   font-size: 13px;
