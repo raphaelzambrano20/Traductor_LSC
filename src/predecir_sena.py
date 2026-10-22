@@ -149,7 +149,11 @@ def obtener_fuente_desde_argumentos():
     if argumentos.fuente == "local":
         return 0
     if argumentos.fuente == "ip":
-        return argumentos.url or "http://192.168.1.2:4747/video"
+        if argumentos.url:
+            return argumentos.url
+        from services.descubrir_droidcam import url_droidcam_red
+        red = url_droidcam_red()
+        return red["url"] if red else "http://127.0.0.1:4747/video"
 
     # Desde la web no hay terminal: usa la cámara local y evita el menú negro.
     if not sys.stdin.isatty():

@@ -74,7 +74,7 @@
       </div>
 
       <div class="camera-url" id="camera-url-box" hidden>
-        <p id="droidcam-status">Al elegir DroidCam busco solo la IP en tu red.</p>
+        <p id="droidcam-status">Uso la IP de esta red y la ruta /video de DroidCam.</p>
         <input id="camera-url-input" type="hidden" value="">
       </div>
     </div>
@@ -106,7 +106,7 @@ function actualizarFuenteCamara() {
   urlBox.hidden = fuente !== 'ip';
 
   if (fuente === 'ip') {
-    buscarDroidCam();
+    prepararUrlDroidCam();
   }
 }
 
@@ -116,9 +116,9 @@ function setEstadoDroidCam(mensaje, ok) {
   el.style.color = ok === false ? 'var(--danger)' : ok ? 'var(--success)' : '';
 }
 
-async function buscarDroidCam() {
+async function prepararUrlDroidCam() {
   const input = document.getElementById('camera-url-input');
-  setEstadoDroidCam('Buscando DroidCam en tu WiFi…');
+  setEstadoDroidCam('Leyendo la IP de esta red…');
   input.value = '';
 
   try {
@@ -126,12 +126,12 @@ async function buscarDroidCam() {
     const data = await respuesta.json();
     if (data.ok && data.url) {
       input.value = data.url;
-      setEstadoDroidCam('DroidCam encontrado en ' + data.ip + '. Se abrirá solo.', true);
+      setEstadoDroidCam('Abrirá ' + data.url, true);
       return data.url;
     }
-    setEstadoDroidCam(data.error || 'No encontré DroidCam en la red.', false);
+    setEstadoDroidCam(data.error || 'No pude armar la URL de DroidCam.', false);
   } catch {
-    setEstadoDroidCam('No pude buscar DroidCam. Revisa que el servidor esté activo.', false);
+    setEstadoDroidCam('No pude leer la IP de la red.', false);
   }
   return '';
 }
@@ -143,12 +143,12 @@ async function lanzarPrediccion() {
   let url = document.getElementById('camera-url-input').value.trim();
 
   btn.disabled = true;
-  btn.textContent = fuente === 'ip' ? 'Buscando DroidCam...' : 'Abriendo...';
+  btn.textContent = 'Abriendo...';
 
   if (fuente === 'ip' && !url) {
-    url = await buscarDroidCam();
+    url = await prepararUrlDroidCam();
     if (!url) {
-      status.textContent = 'Abre DroidCam en el celular y vuelve a intentar.';
+      status.textContent = 'No pude armar la URL con la IP de esta red.';
       status.style.color = 'var(--danger)';
       btn.disabled = false;
       btn.textContent = 'Iniciar predicción';
