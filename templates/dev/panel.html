@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Panel Programador — Traductor LSC{% endblock %}
+{% block title %}Panel programador — LSCNOVA{% endblock %}
 
 {% block content %}
 <div class="page-header dev-header">
   <div>
-    <h1>⚙️ Panel de Programador</h1>
-    <p>Gestiona el dataset, entrena el modelo y monitorea el sistema</p>
+    <p class="kicker">Interno</p>
+    <h1>Panel de programador</h1>
+    <p>Dataset, entrenamiento y captura del avatar.</p>
   </div>
-  <button class="btn-logout" onclick="cerrarSesionDev()">🚪 Cerrar sesión</button>
+  <button class="btn-logout" onclick="cerrarSesionDev()">Cerrar sesión</button>
 </div>
 
 <div class="dev-stats">
@@ -20,38 +21,38 @@
     <span class="dev-stat-label">Señas distintas</span>
   </div>
   <div class="dev-stat">
-    <span class="dev-stat-number">{{ '✓' if modelo_listo else '✗' }}</span>
+    <span class="dev-stat-number">{{ 'Listo' if modelo_listo else 'No' }}</span>
     <span class="dev-stat-label">Modelo {{ 'entrenado' if modelo_listo else 'sin entrenar' }}</span>
   </div>
 </div>
 
 <div class="dev-cards">
   <a href="/dev/capturar" class="dev-card">
-    <div class="dev-card-icon">📸</div>
-    <h3>Capturar Dataset</h3>
-    <p>Agrega nuevas muestras de señas LSC con la cámara</p>
+    <span class="card-index">01</span>
+    <h3>Capturar dataset</h3>
+    <p>Agrega muestras de señas LSC con la cámara para el clasificador.</p>
     <span class="dev-card-btn">Ir a captura</span>
   </a>
 
   <a href="/dev/entrenar" class="dev-card">
-    <div class="dev-card-icon">🧠</div>
-    <h3>Entrenar Modelo</h3>
-    <p>Entrena el clasificador con las muestras capturadas</p>
+    <span class="card-index">02</span>
+    <h3>Entrenar modelo</h3>
+    <p>Compara clasificadores y guarda el mejor con las muestras actuales.</p>
     <span class="dev-card-btn">Ir a entrenamiento</span>
   </a>
 
   <a href="/dev/dataset" class="dev-card">
-    <div class="dev-card-icon">📊</div>
-    <h3>Ver Dataset</h3>
-    <p>Revisa el estado actual de las muestras por seña</p>
-    <span class="dev-card-btn">Ver dataset</span>
+    <span class="card-index">03</span>
+    <h3>Ver dataset</h3>
+    <p>Revisa cuántas muestras hay por seña y cuáles hay que reforzar.</p>
+    <span class="dev-card-btn">Abrir tabla</span>
   </a>
 
   <a href="/dev/capturar-avatar" class="dev-card">
-    <div class="dev-card-icon">📸</div>
-    <h3>Capturar Avatar</h3>
-    <p>Crea nuevas señas para el Avatar</p>
-    <span class="dev-card-btn">Ver dataset</span>
+    <span class="card-index">04</span>
+    <h3>Capturar avatar</h3>
+    <p>Graba rotaciones de huesos para que el avatar reproduzca la seña.</p>
+    <span class="dev-card-btn">Grabar seña</span>
   </a>
 </div>
 

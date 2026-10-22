@@ -88,7 +88,7 @@ export function initAvatar(canvasId, onReady) {
   const W = canvas.width || 400, H = canvas.height || 420;
 
   S.scene = new THREE.Scene();
-  S.scene.background = new THREE.Color(0xdde6f0);
+  S.scene.background = new THREE.Color(0xeee6d8);
 
   S.camera = new THREE.PerspectiveCamera(34, W / H, 0.01, 50);
   S.camera.position.set(0, 1.50, 1.65);
@@ -102,7 +102,7 @@ export function initAvatar(canvasId, onReady) {
   S.scene.add(new THREE.AmbientLight(0xffffff, 0.9));
   const key = new THREE.DirectionalLight(0xfff5e8, 1.3);
   key.position.set(1.5, 4, 3); S.scene.add(key);
-  const fill = new THREE.DirectionalLight(0xb8d0ff, 0.45);
+  const fill = new THREE.DirectionalLight(0xe8dcc8, 0.5);
   fill.position.set(-2, 1, 1); S.scene.add(fill);
 
   const loader = new GLTFLoader();

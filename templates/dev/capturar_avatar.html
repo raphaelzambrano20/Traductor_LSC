@@ -4,7 +4,8 @@
 {% block content %}
 <div class="page-header dev-header">
   <div>
-    <h1>📸 Capturar Seña para Avatar</h1>
+    <p class="kicker">Avatar</p>
+    <h1>Capturar seña</h1>
     <p>Encuádrate de la cintura para arriba. El avatar refleja tus movimientos en vivo. Graba cuando la seña se vea correcta.</p>
   </div>
   <a href="/dev" class="btn-back">← Panel</a>
@@ -104,7 +105,7 @@
       <button id="btn-grabar" onclick="iniciarGrabacion()"
               style="width:100%; padding:0.65rem; background:#1565C0; color:#fff;
                      border:none; border-radius:6px; font-size:1rem; cursor:pointer; font-weight:600;">
-        ⏺ Grabar seña
+        Grabar seña
       </button>
 
       <!-- Barra de progreso (grabando) -->
@@ -122,13 +123,13 @@
                 style="flex:1; padding:0.6rem; background:#2E7D32; color:#fff;
                        border:none; border-radius:6px; font-size:0.95rem; cursor:pointer;
                        font-weight:600; display:block; width:100%; margin-bottom:0.4rem;">
-          💾 Guardar seña
+          Guardar seña
         </button>
         <button onclick="descartarYRegrabar()"
                 style="flex:1; padding:0.6rem; background:#BF360C; color:#fff;
                        border:none; border-radius:6px; font-size:0.95rem; cursor:pointer;
                        font-weight:600; display:block; width:100%;">
-          🔄 Descartar y regravar
+          Descartar y regrabar
         </button>
       </div>
 
@@ -184,7 +185,7 @@
 import * as THREE from 'three';
 import { initAvatar, applyLiveRotations, snapshotRotations,
          startAnimation, stopAnimation }
-  from '/static/js/avatar3d.js?v=20260630a';
+  from '/static/js/avatar3d.js?v=20261022a';
 
 // ─── Estado ───────────────────────────────────────────────────────────────────
 let estado = 'idle';          // 'idle' | 'grabando' | 'revisando'
