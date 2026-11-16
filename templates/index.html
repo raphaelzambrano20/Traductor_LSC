@@ -1,57 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Inicio — Traductor LSCNova{% endblock %}
+{% block title %}Inicio — LSCNOVA{% endblock %}
 
 {% block content %}
 <section class="hero">
   <div class="hero-text">
-    <h1>Comunícate sin barreras</h1>
-    <p>Sistema de traducción bidireccional de Lengua de Señas Colombiana con Inteligencia Artificial</p>
+    <h1>Traductor LSC</h1>
+    <p class="hero-lede">Habla y ve la seña. Haz la seña y escucha la voz.</p>
+    <div class="hero-actions">
+      <a href="/comunicar" class="btn-solid">Voz a seña</a>
+      <a href="/predecir" class="btn-ghost btn-ghost-on-dark">Seña a voz</a>
+    </div>
   </div>
-  <div class="hero-badge">🤟</div>
 </section>
 
 <section class="cards-grid">
-  <a href="/predecir" class="card card-primary">
-    <div class="card-icon">📷</div>
-    <h2>Predecir Seña</h2>
-    <p>Haz una seña frente a la cámara y el sistema la convierte en texto y voz</p>
-    <span class="card-btn">Comenzar</span>
+  <a href="/predecir" class="card">
+    <span class="card-index">Cámara</span>
+    <h2>Seña a voz</h2>
+    <p>Colócate frente a la cámara, haz la seña y el sistema la convierte en texto y voz.</p>
+    <span class="card-btn">Empezar</span>
   </a>
 
-  <a href="/comunicar" class="card card-secondary">
-    <div class="card-icon">🎤</div>
-    <h2>Voz a LSC</h2>
-    <p>Habla o escribe y el avatar mostrará la seña correspondiente en LSC</p>
-    <span class="card-btn">Comenzar</span>
+  <a href="/comunicar" class="card">
+    <span class="card-index">Avatar</span>
+    <h2>Voz a seña</h2>
+    <p>Habla o escribe. El avatar interpreta cada seña en Lengua de Señas Colombiana.</p>
+    <span class="card-btn">Empezar</span>
   </a>
 
-  <a href="/aprender" class="card card-accent">
-    <div class="card-icon">📚</div>
-    <h2>Aprender LSC</h2>
-    <p>Explora el abecedario y el vocabulario básico de la Lengua de Señas Colombiana</p>
-    <span class="card-btn">Explorar</span>
+  <a href="/aprender" class="card">
+    <span class="card-index">Guía</span>
+    <h2>Aprender</h2>
+    <p>Abecedario, saludos, números y frases del aula para empezar a señar.</p>
+    <span class="card-btn">Ver vocabulario</span>
   </a>
 
-  <a href="/acerca" class="card card-info">
-    <div class="card-icon">ℹ️</div>
-    <h2>Acerca del Proyecto</h2>
-    <p>Conoce más sobre este sistema y las tecnologías que lo hacen posible</p>
-    <span class="card-btn">Ver más</span>
+  <a href="/acerca" class="card">
+    <span class="card-index">UNIPAZ</span>
+    <h2>El proyecto</h2>
+    <p>Hecho para el aula, con la comunidad sorda del CASD José Prudencio Padilla.</p>
+    <span class="card-btn">Conocer más</span>
   </a>
 </section>
 
 <section class="stats">
   <div class="stat">
     <span class="stat-number">{{ muestras }}</span>
-    <span class="stat-label">Muestras capturadas</span>
+    <span class="stat-label">Muestras</span>
   </div>
   <div class="stat">
     <span class="stat-number">{{ clases }}</span>
-    <span class="stat-label">Señas registradas</span>
+    <span class="stat-label">Señas</span>
   </div>
   <div class="stat">
-    <span class="stat-number">{{ '✓' if modelo_listo else '⏳' }}</span>
-    <span class="stat-label">Modelo {{ 'listo' if modelo_listo else 'pendiente' }}</span>
+    <span class="stat-number">{{ 'Listo' if modelo_listo else 'En curso' }}</span>
+    <span class="stat-label">Modelo</span>
   </div>
 </section>
 {% endblock %}

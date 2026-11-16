@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Predecir Seña — Traductor LSCNova{% endblock %}
+{% block title %}Seña a voz — LSCNOVA{% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1>📷 Predecir Seña en Tiempo Real</h1>
-  <p>El sistema detecta tus señas a través de la cámara y las convierte en texto y voz</p>
+  <h1>Seña a voz</h1>
+  <p>Haz la seña frente a la cámara. El sistema la dice en voz alta.</p>
 </div>
 
 {% if not modelo_listo %}
 <div class="alert alert-warning">
-  ⚠️ El modelo no está entrenado aún. Primero capture muestras y entrene el modelo desde la terminal.
+  El modelo todavía no está entrenado. Captura muestras y entrena desde el modo programador.
 </div>
 {% endif %}
 
@@ -18,72 +18,171 @@
     <div class="step">
       <div class="step-number">1</div>
       <div class="step-text">
-        <h3>Posiciónate frente a la cámara</h3>
-        <p>Asegúrate de que tu rostro, hombros y manos sean visibles</p>
+        <h3>Encuádrese de frente</h3>
+        <p>Rostro, hombros y manos visibles. Luz frontal, fondo lo más quieto posible.</p>
       </div>
     </div>
     <div class="step">
       <div class="step-number">2</div>
       <div class="step-text">
-        <h3>Haz la seña con claridad</h3>
-        <p>El indicador de calidad te mostrará si la cámara detecta bien tu mano</p>
+        <h3>Haga la seña con claridad</h3>
+        <p>El indicador de calidad avisa si la mano se pierde. Ritmo natural, sin recortar el movimiento.</p>
       </div>
     </div>
     <div class="step">
       <div class="step-number">3</div>
       <div class="step-text">
-        <h3>El sistema traduce automáticamente</h3>
-        <p>La seña detectada aparecerá como texto y se reproducirá en voz</p>
+        <h3>El sistema traduce solo</h3>
+        <p>La seña aparece como texto y se reproduce en voz. No hay que confirmar cada toma.</p>
       </div>
     </div>
   </div>
 
   <div class="launch-box">
-    <p>La predicción abre una ventana con acceso directo a tu cámara</p>
+    <div class="camera-picker">
+      <h3>Elige la cámara</h3>
+      <div class="camera-options" role="radiogroup" aria-label="Fuente de cámara">
+        <label class="camera-option">
+          <input type="radio" name="fuente-camara" value="local" checked onchange="actualizarFuenteCamara()">
+          <span class="camera-option-body">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="12" rx="2"></rect>
+              <path d="M8 21h8M12 17v4"></path>
+            </svg>
+            <span>
+              <strong>Cámara del equipo</strong>
+              <small>Webcam integrada o USB</small>
+            </span>
+            <span class="camera-check" aria-hidden="true">✓</span>
+          </span>
+        </label>
+
+        <label class="camera-option">
+          <input type="radio" name="fuente-camara" value="ip" onchange="actualizarFuenteCamara()">
+          <span class="camera-option-body">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="7" y="2" width="10" height="20" rx="2"></rect>
+              <path d="M10 5h4M11 18h2"></path>
+            </svg>
+            <span>
+              <strong>DroidCam</strong>
+              <small>Celular conectado por WiFi</small>
+            </span>
+            <span class="camera-check" aria-hidden="true">✓</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="camera-url" id="camera-url-box" hidden>
+        <p id="droidcam-status">Uso la IP de esta red y la ruta /video de DroidCam.</p>
+        <input id="camera-url-input" type="hidden" value="">
+      </div>
+    </div>
+
+    <p>La predicción abrirá directamente la ventana de cámara, sin mostrar una consola.</p>
     <button class="btn-launch" id="btn-lanzar" onclick="lanzarPrediccion()" {% if not modelo_listo %}disabled{% endif %}>
-      🚀 Iniciar predicción
+      Iniciar predicción
     </button>
     <p class="launch-hint" id="launch-status"></p>
   </div>
 </div>
 
 <div class="tips-box">
-  <h3>💡 Consejos para mejores resultados</h3>
+  <h3>Para que lea mejor</h3>
   <ul>
-    <li>Usa buena iluminación, preferiblemente luz frontal</li>
-    <li>Mantén las manos dentro del encuadre de la cámara</li>
-    <li>Haz las señas de forma clara y a velocidad normal</li>
-    <li>El fondo debe ser lo más uniforme posible</li>
+    <li>Luz frontal, no a contraluz.</li>
+    <li>Manos dentro del encuadre, de principio a fin.</li>
+    <li>Seña clara, a velocidad de conversación.</li>
+    <li>Fondo uniforme, sin otra persona cruzando.</li>
   </ul>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-function lanzarPrediccion() {
+function actualizarFuenteCamara() {
+  const fuente = document.querySelector('input[name="fuente-camara"]:checked').value;
+  const urlBox = document.getElementById('camera-url-box');
+  urlBox.hidden = fuente !== 'ip';
+
+  if (fuente === 'ip') {
+    prepararUrlDroidCam();
+  }
+}
+
+function setEstadoDroidCam(mensaje, ok) {
+  const el = document.getElementById('droidcam-status');
+  el.textContent = mensaje;
+  el.style.color = ok === false ? 'var(--danger)' : ok ? 'var(--success)' : '';
+}
+
+async function prepararUrlDroidCam() {
+  const input = document.getElementById('camera-url-input');
+  setEstadoDroidCam('Leyendo la IP de esta red…');
+  input.value = '';
+
+  try {
+    const respuesta = await fetch('/api/camara/droidcam');
+    const data = await respuesta.json();
+    if (data.ok && data.url) {
+      input.value = data.url;
+      setEstadoDroidCam('Abrirá ' + data.url, true);
+      return data.url;
+    }
+    setEstadoDroidCam(data.error || 'No pude armar la URL de DroidCam.', false);
+  } catch {
+    setEstadoDroidCam('No pude leer la IP de la red.', false);
+  }
+  return '';
+}
+
+async function lanzarPrediccion() {
   const btn = document.getElementById('btn-lanzar');
   const status = document.getElementById('launch-status');
+  const fuente = document.querySelector('input[name="fuente-camara"]:checked').value;
+  let url = document.getElementById('camera-url-input').value.trim();
+
   btn.disabled = true;
-  btn.textContent = '⏳ Abriendo...';
-  fetch('/predecir/lanzar', { method: 'POST' })
-    .then(r => r.json())
-    .then(data => {
-      if (data.ok) {
-        status.textContent = '✅ Ventana de predicción abierta correctamente';
-        status.style.color = 'var(--success)';
-      } else {
-        status.textContent = '❌ Error: ' + data.error;
-        status.style.color = 'var(--danger)';
-      }
-      btn.disabled = false;
-      btn.textContent = '🚀 Iniciar predicción';
-    })
-    .catch(() => {
-      status.textContent = '❌ No se pudo conectar con el servidor';
+  btn.textContent = 'Abriendo...';
+
+  if (fuente === 'ip' && !url) {
+    url = await prepararUrlDroidCam();
+    if (!url) {
+      status.textContent = 'No pude armar la URL con la IP de esta red.';
       status.style.color = 'var(--danger)';
       btn.disabled = false;
-      btn.textContent = '🚀 Iniciar predicción';
+      btn.textContent = 'Iniciar predicción';
+      return;
+    }
+  }
+
+  btn.textContent = 'Abriendo...';
+
+  try {
+    const respuesta = await fetch('/predecir/lanzar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fuente, url })
     });
+    const data = await respuesta.json();
+
+    if (data.ok) {
+      if (data.url) {
+        document.getElementById('camera-url-input').value = data.url;
+      }
+      status.textContent = 'Cámara iniciada. La ventana puede tardar unos segundos en aparecer.';
+      status.style.color = 'var(--success)';
+    } else {
+      status.textContent = data.error || 'No fue posible iniciar la cámara.';
+      status.style.color = 'var(--danger)';
+    }
+  } catch {
+      status.textContent = 'No se pudo conectar con el servidor.';
+      status.style.color = 'var(--danger)';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Iniciar predicción';
+  }
 }
 </script>
 {% endblock %}

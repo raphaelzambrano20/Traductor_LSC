@@ -4,8 +4,9 @@
 {% block content %}
 <div class="page-header dev-header">
   <div>
-    <h1>🧠 Entrenar Modelo</h1>
-    <p>Entrena el clasificador con las muestras capturadas</p>
+    <p class="kicker">Modelo</p>
+    <h1>Entrenar clasificador</h1>
+    <p>Entrena con las muestras capturadas y guarda el mejor modelo.</p>
   </div>
   <a href="/dev" class="btn-back">← Panel</a>
 </div>
@@ -23,7 +24,7 @@
 
 {% if muestras < 10 %}
 <div class="alert alert-warning">
-  ⚠️ Hay muy pocas muestras. Capture al menos 30 muestras por seña antes de entrenar.
+  Hay muy pocas muestras. Captura al menos 30 por seña antes de entrenar.
 </div>
 {% endif %}
 
@@ -55,14 +56,14 @@
   <div class="launch-box">
     <p>El entrenamiento puede tardar varios minutos según la cantidad de muestras</p>
     <button class="btn-launch btn-train" id="btn-entrenar" onclick="lanzarEntrenamiento()" {% if muestras < 10 %}disabled{% endif %}>
-      🧠 Iniciar entrenamiento
+      Iniciar entrenamiento
     </button>
     <p class="launch-hint" id="train-status"></p>
   </div>
 </div>
 
 <div class="tips-box">
-  <h3>💡 Sobre el entrenamiento</h3>
+  <h3>Sobre el entrenamiento</h3>
   <ul>
     <li>El modelo anterior se reemplaza automáticamente si el nuevo es mejor</li>
     <li>Con el dataset actual gana ExtraTrees (~99.55% en entrenamiento)</li>
@@ -76,18 +77,18 @@ async function lanzarEntrenamiento() {
   const btn = document.getElementById('btn-entrenar');
   const status = document.getElementById('train-status');
   btn.disabled = true;
-  btn.textContent = '⏳ Iniciando...';
+  btn.textContent = 'Iniciando...';
   const r = await fetch('/dev/entrenar/lanzar', { method: 'POST' });
   const data = await r.json();
   if (data.ok) {
-    status.textContent = '✅ Entrenamiento iniciado en nueva ventana. Espera a que termine antes de predecir.';
+    status.textContent = 'Entrenamiento iniciado en una ventana nueva. Espera a que termine antes de predecir.';
     status.style.color = 'var(--success)';
   } else {
-    status.textContent = '❌ Error: ' + data.error;
+    status.textContent = 'Error: ' + data.error;
     status.style.color = 'var(--danger)';
   }
   btn.disabled = false;
-  btn.textContent = '🧠 Iniciar entrenamiento';
+  btn.textContent = 'Iniciar entrenamiento';
 }
 </script>
 {% endblock %}

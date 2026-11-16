@@ -4,8 +4,9 @@
 {% block content %}
 <div class="page-header dev-header">
   <div>
-    <h1>📸 Capturar Dataset</h1>
-    <p>Abre la herramienta de captura de señas con la cámara</p>
+    <p class="kicker">Dataset</p>
+    <h1>Capturar muestras</h1>
+    <p>Abre la herramienta de captura de señas con la cámara.</p>
   </div>
   <a href="/dev" class="btn-back">← Panel</a>
 </div>
@@ -38,14 +39,14 @@
   <div class="launch-box">
     <p>Se abrirá una nueva ventana de terminal con la herramienta de captura</p>
     <button class="btn-launch" id="btn-capturar" onclick="lanzarCaptura()">
-      📸 Iniciar captura
+      Iniciar captura
     </button>
     <p class="launch-hint" id="captura-status"></p>
   </div>
 </div>
 
 <div class="tips-box">
-  <h3>💡 Recomendaciones para capturar</h3>
+  <h3>Recomendaciones</h3>
   <ul>
     <li>Captura mínimo 50 muestras por seña para buenos resultados</li>
     <li>Varía la posición y ángulo ligeramente entre muestras</li>
@@ -60,18 +61,18 @@ async function lanzarCaptura() {
   const btn = document.getElementById('btn-capturar');
   const status = document.getElementById('captura-status');
   btn.disabled = true;
-  btn.textContent = '⏳ Abriendo...';
+  btn.textContent = 'Abriendo...';
   const r = await fetch('/dev/capturar/lanzar', { method: 'POST' });
   const data = await r.json();
   if (data.ok) {
-    status.textContent = '✅ Herramienta de captura abierta en nueva ventana';
+    status.textContent = 'Herramienta de captura abierta en una ventana nueva.';
     status.style.color = 'var(--success)';
   } else {
-    status.textContent = '❌ Error: ' + data.error;
+    status.textContent = 'Error: ' + data.error;
     status.style.color = 'var(--danger)';
   }
   btn.disabled = false;
-  btn.textContent = '📸 Iniciar captura';
+  btn.textContent = 'Iniciar captura';
 }
 </script>
 {% endblock %}

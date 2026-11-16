@@ -31,8 +31,8 @@ async function verificarPassword() {
     document.getElementById('modal-dev').classList.remove('open');
     document.getElementById('nav-dev-sep').style.display = 'flex';
     document.getElementById('nav-dev-links').style.display = 'flex';
-    document.getElementById('btn-dev').textContent = '⚙️ Programador';
-    document.getElementById('btn-dev').style.background = 'linear-gradient(135deg, #06d6a0, #059669)';
+    document.getElementById('btn-dev').textContent = 'Programador';
+    document.getElementById('btn-dev').classList.add('btn-dev-on');
     document.getElementById('btn-dev').onclick = () => window.location.href = '/dev';
   } else {
     errorEl.textContent = data.error || 'Contraseña incorrecta';

@@ -4,6 +4,7 @@ import sys
 import webbrowser
 from pathlib import Path
 from threading import Timer
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -19,6 +20,7 @@ from src.database.seed import seed_database
 from src.services.traductor_texto import traducir_texto
 from src.services.transcriptor_voz import TranscripcionError, transcribir_audio, vosk_configurado
 from src.services.landmarks_avatar import obtener_landmarks_sena, listar_senas_con_landmarks
+from src.services.descubrir_droidcam import url_droidcam_red
 from src.config import MODEL_PATH, DATASET_PATH, LEGACY_DATASET_PATH
 import subprocess
 import csv
@@ -59,19 +61,60 @@ def predecir():
 
 @app.route("/predecir/lanzar", methods=["POST"])
 def lanzar_prediccion():
+    datos = request.get_json(silent=True) or {}
+    tipo_fuente = str(datos.get("fuente", "local")).strip().lower()
+
+    if tipo_fuente not in {"local", "ip"}:
+        return jsonify({"ok": False, "error": "Fuente de cámara no válida."}), 400
+
+    ejecutable = Path(sys.executable)
+    if sys.platform == "win32":
+        pythonw = ejecutable.with_name("pythonw.exe")
+        if pythonw.exists():
+            ejecutable = pythonw
+
+    comando = [str(ejecutable), str(PROJECT_ROOT / "src" / "predecir_sena.py"), "--fuente", tipo_fuente]
+    if tipo_fuente == "ip":
+        url_camara = str(datos.get("url", "")).strip()
+        if not url_camara:
+            red = url_droidcam_red()
+            if not red:
+                return jsonify({
+                    "ok": False,
+                    "error": "No pude leer la IP de esta red.",
+                }), 400
+            url_camara = red["url"]
+        url_analizada = urlparse(url_camara)
+        if url_analizada.scheme not in {"http", "https"} or not url_analizada.netloc:
+            return jsonify({"ok": False, "error": "La dirección de DroidCam no es válida."}), 400
+        comando.extend(["--url", url_camara])
+
     try:
-        subprocess.Popen(
-            [sys.executable, str(PROJECT_ROOT / "src" / "predecir_sena.py")],
-            creationflags=subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0,
-        )
-        return jsonify({"ok": True})
+        opciones_proceso = {
+            "stdin": subprocess.DEVNULL,
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+        }
+        if sys.platform == "win32":
+            opciones_proceso["creationflags"] = subprocess.CREATE_NO_WINDOW
+        else:
+            opciones_proceso["start_new_session"] = True
+
+        subprocess.Popen(comando, **opciones_proceso)
+        extra = {}
+        if tipo_fuente == "ip":
+            extra["url"] = url_camara
+        return jsonify({"ok": True, **extra})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 
 
-@app.route("/comunicar")
-def comunicar():
-    return render_template("comunicar.html", vosk_ok=vosk_configurado())
+@app.route("/api/camara/droidcam")
+def api_camara_droidcam():
+    red = url_droidcam_red()
+    if not red:
+        return jsonify({"ok": False, "error": "No pude leer la IP de esta red."}), 400
+    return jsonify({"ok": True, **red})
 
 
 @app.route("/api/traducir", methods=["POST"])
