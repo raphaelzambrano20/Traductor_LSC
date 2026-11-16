@@ -109,6 +109,11 @@ def lanzar_prediccion():
         return jsonify({"ok": False, "error": str(e)})
 
 
+@app.route("/comunicar")
+def comunicar():
+    return render_template("comunicar.html", vosk_ok=vosk_configurado())
+
+
 @app.route("/api/camara/droidcam")
 def api_camara_droidcam():
     red = url_droidcam_red()
